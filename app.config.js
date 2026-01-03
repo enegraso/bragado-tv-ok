@@ -9,7 +9,7 @@ export default {
       [
         "@react-native-tvos/config-tv",
         {
-          "androidTVBanner": "./assets/iconobannertv.png"
+          "androidTVBanner": "./assets/tvbannernew.png"
         }
       ],
       "./plugins/fix-microphone"
@@ -20,7 +20,7 @@ export default {
       "backgroundColor": "#000000"
     },
 
-    "icon": "./assets/icono.png",
+    "icon": "./assets/icon.png",
 
     "splash": {
       "image": "./assets/splash.png",
@@ -30,10 +30,6 @@ export default {
 
     "android": {
       "package": "com.bragado.tvok",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/iconotv.png",
-        "backgroundColor": "#000000"
-      },
       "versionCode": 1,
       "supportsPictureInPicture": true,
       "resizeableActivity": true
