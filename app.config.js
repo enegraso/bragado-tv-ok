@@ -2,7 +2,7 @@ export default {
   "expo": {
     "name": "Bragado TV OK",
     "slug": "bragado-tv-ok",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "orientation": "default",
 
     "plugins": [
