@@ -103,6 +103,7 @@ async function checkStoreVersion() {
 
 import HomeScreen from './screens/HomeScreen';
 import PlayerScreen from './screens/PlayerScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function App() {
   const isTV = Platform.isTV;
@@ -204,19 +205,21 @@ export default function App() {
   }, []);
 
   // ───────────── Render ─────────────
-  if (showHome) {
-    return (
-      <HomeScreen
-        onStart={() => setShowHome(false)}
-        logoUrl={logoUrl}
-        bgColor={bgColor}
-        buttonBg={buttonBg}
-        textColor={textColor}
-      />
-    );
-  }
-
-  return <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} />;
+  return (
+    <SafeAreaProvider>
+      {showHome ? (
+        <HomeScreen
+          onStart={() => setShowHome(false)}
+          logoUrl={logoUrl}
+          bgColor={bgColor}
+          buttonBg={buttonBg}
+          textColor={textColor}
+        />
+      ) : (
+        <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} />
+      )}
+    </SafeAreaProvider>
+  );
 }
 
 // ───────────── Styles ─────────────
