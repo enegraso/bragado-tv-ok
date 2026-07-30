@@ -18,6 +18,12 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Firebase / APNs credentials
+google-services.json
+
+# admin folder (uploaded via FTP to external server)
+/admin/
+
 # Metro
 .metro-health-check*
 

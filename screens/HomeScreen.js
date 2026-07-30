@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, Pressable, StyleSheet, Linking, Modal } from 'react-native';
+import SettingsScreen from '../app/screens/SettingsScreen';
 
 export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.08)', textColor = '#fff' }) {
   const source = logoUrl ? { uri: logoUrl } : require('../assets/logo.png');
@@ -9,8 +10,13 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
   const textStyle = [styles.buttonText, { color: textColor }];
   const subtitleStyle = [styles.subtitle, { color: textColor }];
 
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <View style={containerStyle}>
+      <Pressable style={{position:'absolute', top:10, right:10, padding:8}} onPress={() => setShowSettings(true)}>
+        <Text style={{color:textColor}}>⚙️</Text>
+      </Pressable>
       <Image source={source} style={styles.logo} resizeMode="contain" />
       <Text style={subtitleStyle}>Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.</Text>
 
@@ -25,6 +31,9 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
       <Pressable style={buttonStyle} onPress={() => Linking.openURL('tel:+5492342480567') } accessibilityLabel="Llamar">
         <Text style={textStyle}>LLAMAR</Text>
       </Pressable>
+      <Modal visible={showSettings} animationType="slide" onRequestClose={() => setShowSettings(false)}>
+        <SettingsScreen onClose={() => setShowSettings(false)} />
+      </Modal>
     </View>
   );
 }
