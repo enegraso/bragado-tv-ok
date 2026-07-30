@@ -1,0 +1,72 @@
+Compilaciones - Expo / EAS
+
+Resumen:
+- Este fichero contiene los comandos que se usan para compilar y publicar la app con Expo / EAS.
+- Revisa los perfiles en `eas.json` y los scripts en `package.json` antes de ejecutar.
+
+Requisitos previos:
+- Tener instalado Node/npm.
+- Tener instalado EAS CLI (npm install -g eas-cli) y estar logueado: `eas login`.
+- Tener las credenciales necesarias para firmar (si corresponde) almacenadas en EAS/Expo.
+
+Instalación / desarrollo local
+
+- Instalar dependencias:
+  npm install
+
+- Ejecutar el servidor de desarrollo (Metro):
+  npm run start
+  (ó `expo start`)
+
+- Ejecutar en dispositivo/emulador Android:
+  npm run android
+  (ó `expo run:android`)
+
+Comandos de build (definidos en package.json):
+
+- build:android
+  - Script: `npm run build:android`
+  - Efecto: ejecuta `npm run version:bump` y luego `cross-env EXPO_TV=1 eas build -p android --profile production`.
+  - Uso: compilación Android en perfil `production` con la variable EXPO_TV=1 (útil si querés forzar comportamientos de TV).
+
+- build:preview
+  - Script: `npm run build:preview`
+  - Efecto: ejecuta `npm run version:bump` y luego `eas build -p android --profile preview`.
+  - Uso: compilación para pruebas internas (perfil `preview`, en `eas.json` está configurado para `buildType: apk`).
+
+- build:produtv
+  - Script: `npm run build:produtv`
+  - Efecto: ejecuta `npm run version:bump` y luego `eas build -p android --profile production_tv`.
+  - Uso: compilación para TV (perfil `production_tv` extiende `production` y define `EXPO_TV=1` y `channel: production`).
+
+Comandos EAS directos (alternativa a los scripts):
+
+- Build preview (apk):
+  eas build -p android --profile preview
+
+- Build producción (Android):
+  eas build -p android --profile production
+
+- Build producción TV (usa profile production_tv):
+  eas build -p android --profile production_tv
+
+- Build desarrollo (dev client):
+  eas build -p android --profile development
+
+Notas / recomendaciones:
+- Los scripts en `package.json` ya llaman a `npm run version:bump` antes de las builds (esto incrementa la versión localmente mediante `bump-version.js`). Si no querés el bump automático, ejecuta el comando `eas build` directamente.
+- Para iOS podrías usar `eas build -p ios --profile production` si necesitás generar builds para iOS (requiere cuenta Apple y configuración en EAS/Expo).
+- Revisa `eas.json` para ver y ajustar configuraciones por perfil (autoIncrement, buildType, variables de entorno, etc.).
+- `EXPO_TV` se usa en este proyecto para activar comportamientos específicos para Android TV; algunos scripts lo establecen automáticamente.
+
+Ejemplo de flujo completo (producción Android):
+
+1. npm install
+2. npm run build:android
+
+Ejemplo de flujo rápido para pruebas (preview apk):
+
+1. npm install
+2. npm run build:preview
+
+Si querés, puedo ajustar este fichero para añadir comandos extra que uses habitualmente (por ejemplo: subir a una carpeta compartida, renombrar artefactos, subir a un servidor, o pasos manuales que tuvieras en la versión anterior). Pegá aquí el contenido específico que recuerdes y lo agrego.

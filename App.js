@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, StatusBar, Platform, AppState, Alert, Linking } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+// Use expo-av player in a dedicated PlayerScreen for compatibility with Expo Go
 import * as Updates from 'expo-updates';
 import * as Application from 'expo-application';
 
@@ -27,8 +27,9 @@ async function markCheckedToday() {
 }
 
 // ───────────── Config ─────────────
-const CONFIG_URL = 'https://km210.com/btbconfig.txt';
 const DEFAULT_STREAM_URL = 'https://srv1053170.hstgr.cloud/hls/bragadotv.m3u8';
+
+import { getConfig } from './services/remoteConfig';
 
 
 
@@ -99,48 +100,39 @@ async function checkStoreVersion() {
   }
 }
 
+import HomeScreen from './screens/HomeScreen';
+import PlayerScreen from './screens/PlayerScreen';
+
 export default function App() {
   const isTV = Platform.isTV;
   const appState = useRef(AppState.currentState);
   const [streamUrl, setStreamUrl] = useState(DEFAULT_STREAM_URL);
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [bgColor, setBgColor] = useState('#000000');
+  const [buttonBg, setButtonBg] = useState('rgba(255,255,255,0.08)');
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [showHome, setShowHome] = useState(true);
 
-  // ───────────── Video Player ─────────────
-  const player = useVideoPlayer(streamUrl, (p) => {
-    p.loop = false;
-    p.play();
-  });
+  // Note: the original implementation used expo-video's native player.
+  // For Expo Go compatibility we render a separate expo-av based PlayerScreen.
 
   // ───────────── Init: remote config + OTA ─────────────
   useEffect(() => {
     let isMounted = true;
 
-
-    async function loadRemoteConfig() {
+    async function init() {
       try {
-        const res = await fetch(CONFIG_URL);
-        const text = await res.text();
-
-        const lines = text.split(/\r?\n/);
-        const map = {};
-
-        lines.forEach((line) => {
-          const clean = line.trim();
-          if (!clean || clean.startsWith('#')) return;
-          const parts = clean.split('=');
-          if (parts.length === 2) {
-            map[parts[0].trim()] = parts[1].trim();
-          }
-        });
-
-        if (map.STREAM_URL && isMounted) {
-          setStreamUrl(map.STREAM_URL);
-        }
+        const cfg = await getConfig();
+        if (!isMounted) return;
+        if (cfg?.stream) setStreamUrl(cfg.stream);
+        if (cfg?.logo) setLogoUrl(cfg.logo);
+        if (cfg?.fondo) setBgColor(cfg.fondo);
+        if (cfg?.botonfondo) setButtonBg(cfg.botonfondo);
+        if (cfg?.colorletras) setTextColor(cfg.colorletras);
       } catch (e) {
         console.log('Config remota no disponible, usando default');
       }
-    }
 
-    async function checkForUpdates() {
       try {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
@@ -148,11 +140,11 @@ export default function App() {
           await Updates.reloadAsync();
         }
       } catch (e) { }
+
+      checkStoreVersion();
     }
 
-    loadRemoteConfig();
-    checkForUpdates();
-    checkStoreVersion();
+    init();
 
     return () => {
       isMounted = false;
@@ -160,44 +152,29 @@ export default function App() {
   }, []);
 
   // ───────────── AppState handling ─────────────
+  // The PlayerScreen will manage playback lifecycle when active. No global player here.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
-      // Volver al foreground → reiniciar live
-      if (appState.current !== 'active' && nextState === 'active') {
-        try {
-          player.replaceAsync(streamUrl);
-          player.play();
-        } catch (e) { }
-      }
-
-      // Background → PiP (solo Android Mobile)
-      if (
-        Platform.OS === 'android' &&
-        !Platform.isTV &&
-        nextState === 'background'
-      ) {
-        try {
-          player.enterPictureInPicture();
-        } catch (e) { }
-      }
-
       appState.current = nextState;
     });
 
     return () => subscription.remove();
-  }, [player, streamUrl]);
+  }, []);
 
   // ───────────── Render ─────────────
-  return (
-    <View style={isTV ? styles.tvContainer : styles.mobileContainer}>
-      <StatusBar hidden />
-      <VideoView
-        style={isTV ? styles.tvVideo : styles.mobileVideo}
-        player={player}
-        fullscreenOptions={{ enabled: true }}
+  if (showHome) {
+    return (
+      <HomeScreen
+        onStart={() => setShowHome(false)}
+        logoUrl={logoUrl}
+        bgColor={bgColor}
+        buttonBg={buttonBg}
+        textColor={textColor}
       />
-    </View>
-  );
+    );
+  }
+
+  return <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} />;
 }
 
 // ───────────── Styles ─────────────
