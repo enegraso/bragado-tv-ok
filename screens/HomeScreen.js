@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Linking, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SettingsScreen from '../app/screens/SettingsScreen';
 
 export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.08)', textColor = '#fff' }) {
@@ -11,13 +12,19 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
   const subtitleStyle = [styles.subtitle, { color: textColor }];
 
   const [showSettings, setShowSettings] = useState(false);
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={containerStyle}>
-      <Pressable style={{position:'absolute', top:10, right:10, padding:8}} onPress={() => setShowSettings(true)}>
+      {/* gear button: place below safe area to avoid being covered by status bar */}
+      <Pressable
+        style={{position:'absolute', top: (insets.top || 10) + 6, right:10, padding:8, zIndex: 10}}
+        onPress={() => setShowSettings(true)}
+        accessibilityLabel="Abrir configuración"
+      >
         <Text style={{color:textColor}}>⚙️</Text>
       </Pressable>
-      <Image source={source} style={styles.logo} resizeMode="contain" />
+      <Image source={source} style={styles.logo} resizeMode="contain" onLongPress={() => setShowSettings(true)} />
       <Text style={subtitleStyle}>Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.</Text>
 
       <Pressable style={buttonStyle} onPress={onStart} accessibilityLabel="Ver en vivo">
