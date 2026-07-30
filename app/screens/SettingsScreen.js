@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Switch, StyleSheet, Alert, BackHandler } from 'react-native';
+import { View, Text, Switch, Button, StyleSheet, Alert, BackHandler } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
