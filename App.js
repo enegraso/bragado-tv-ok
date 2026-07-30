@@ -175,8 +175,12 @@ export default function App() {
         if (data.url) {
           Linking.openURL(data.url).catch(() => {});
         } else if (data.type === 'programacion') {
-          // Open app - by default tapping will bring app to foreground; we can extend navigation here
-          // For now, do nothing else (app will be foregrounded)
+          // Navigate to the player (Live) when a "programacion" notification is tapped.
+          // If the notification provides a stream URL, use it; otherwise use the current streamUrl.
+          try {
+            if (data.stream) setStreamUrl(data.stream);
+          } catch (e) {}
+          setShowHome(false);
         }
       } catch (e) {
         console.log('notification response handler error', e);
