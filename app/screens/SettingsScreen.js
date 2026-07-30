@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Switch, Button, StyleSheet, Alert, BackHandler } from 'react-native';
+import { View, Text, Switch, Button, StyleSheet, Alert, BackHandler, Linking } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +11,7 @@ export default function SettingsScreen({ onClose }) {
   const [programacion, setProgramacion] = useState(true);
   const [token, setToken] = useState(null);
   const [registered, setRegistered] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -43,6 +44,15 @@ export default function SettingsScreen({ onClose }) {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
     return () => { mounted = false; sub.remove(); };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const p = await Notifications.getPermissionsAsync();
+        setPermissionStatus(p.status);
+      } catch (e) { console.log('perm check', e); }
+    })();
   }, []);
 
   // When preferences or token change, auto register/unregister accordingly
@@ -78,9 +88,26 @@ export default function SettingsScreen({ onClose }) {
         <Text style={{fontSize:12,marginTop:6}} selectable>{token || '(no disponible en Expo Go / emulador)'}</Text>
         <Text style={{fontSize:12,color:'#666',marginTop:8}}>Estado: {registered ? 'Registrado' : 'No registrado'}</Text>
       </View>
-      {/* Removed test notification button: notifications should come from remote pushes.
-          Foreground notifications will be shown by the system UI; the app will handle taps.
-      */}
+      {permissionStatus !== 'granted' ? (
+        <View style={{marginTop:12}}>
+          <Button title="Solicitar permiso de notificaciones" onPress={async () => {
+            try {
+              const res = await Notifications.requestPermissionsAsync();
+              setPermissionStatus(res.status);
+              if (res.status !== 'granted') {
+                Alert.alert('Permiso rechazado', 'Puede activar las notificaciones desde la configuración del sistema.', [
+                  { text: 'Abrir ajustes', onPress: () => Linking.openSettings() },
+                  { text: 'Cerrar', style: 'cancel' }
+                ]);
+              } else {
+                Alert.alert('Permiso otorgado', 'Ahora la app puede recibir notificaciones.');
+              }
+            } catch (e) {
+              Alert.alert('Error', String(e));
+            }
+          }} />
+        </View>
+      ) : null}
     </View>
   );
 }

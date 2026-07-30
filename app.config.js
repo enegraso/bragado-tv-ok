@@ -32,7 +32,9 @@ export default {
       "package": "com.bragado.tvok",
       "versionCode": 1,
       "supportsPictureInPicture": true,
-      "resizeableActivity": true
+      "resizeableActivity": true,
+      // Required for Android 13+ to request runtime notification permission
+      "permissions": ["POST_NOTIFICATIONS"]
     },
 
     "updates": {
