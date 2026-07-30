@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, StatusBar, Platform, AppState, Alert, Linking } from 'react-native';
+import * as Notifications from 'expo-notifications';
 // Use expo-av player in a dedicated PlayerScreen for compatibility with Expo Go
 import * as Updates from 'expo-updates';
 import * as Application from 'expo-application';
@@ -148,6 +149,47 @@ export default function App() {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  // Notification handlers: foreground display via an Alert/modal and response handling
+  useEffect(() => {
+    // Configure handler so system notifications don't auto-show while app is foreground
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: true, shouldSetBadge: false }),
+    });
+
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      try {
+        const { title, body, data } = notification.request.content;
+        const actions = [];
+        if (data?.url) {
+          actions.push({ text: 'Ir', onPress: () => Linking.openURL(data.url).catch(() => {}) });
+        }
+        actions.push({ text: 'Cerrar', style: 'cancel' });
+        Alert.alert(title || 'Notificación', body || '', actions);
+      } catch (e) {
+        console.log('notification received handler error', e);
+      }
+    });
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      try {
+        const data = response.notification.request.content.data || {};
+        if (data.url) {
+          Linking.openURL(data.url).catch(() => {});
+        } else if (data.type === 'programacion') {
+          // Open app - by default tapping will bring app to foreground; we can extend navigation here
+          // For now, do nothing else (app will be foregrounded)
+        }
+      } catch (e) {
+        console.log('notification response handler error', e);
+      }
+    });
+
+    return () => {
+      try { receivedSub && receivedSub.remove && receivedSub.remove(); } catch (e) {}
+      try { responseSub && responseSub.remove && responseSub.remove(); } catch (e) {}
     };
   }, []);
 

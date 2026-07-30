@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Switch, StyleSheet, Alert, BackHandler } from 'react-native';
 import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getExpoPushTokenAsync, registerTokenOnServer, unregisterTokenOnServer } from '../services/notifications';
 import * as Application from 'expo-application';
@@ -76,6 +77,18 @@ export default function SettingsScreen({ onClose }) {
         <Text style={{fontSize:12,color:'#666'}}>Expo Push Token (visible si disponible):</Text>
         <Text style={{fontSize:12,marginTop:6}} selectable>{token || '(no disponible en Expo Go / emulador)'}</Text>
         <Text style={{fontSize:12,color:'#666',marginTop:8}}>Estado: {registered ? 'Registrado' : 'No registrado'}</Text>
+      </View>
+      <View style={{marginTop:18}}>
+        <Button title="Probar notificación local" onPress={async () => {
+          try {
+            await Notifications.scheduleNotificationAsync({
+              content: { title: 'Prueba', body: 'Esto es una notificación local', data: { type: 'portal', url: 'https://bragadotv.com.ar' } },
+              trigger: null,
+            });
+          } catch (e) {
+            Alert.alert('Error', 'No se pudo programar la notificación: ' + String(e));
+          }
+        }} />
       </View>
     </View>
   );
