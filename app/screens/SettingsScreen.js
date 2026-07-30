@@ -78,18 +78,9 @@ export default function SettingsScreen({ onClose }) {
         <Text style={{fontSize:12,marginTop:6}} selectable>{token || '(no disponible en Expo Go / emulador)'}</Text>
         <Text style={{fontSize:12,color:'#666',marginTop:8}}>Estado: {registered ? 'Registrado' : 'No registrado'}</Text>
       </View>
-      <View style={{marginTop:18}}>
-        <Button title="Probar notificación local" onPress={async () => {
-          try {
-            await Notifications.scheduleNotificationAsync({
-              content: { title: 'Prueba', body: 'Esto es una notificación local', data: { type: 'portal', url: 'https://bragadotv.com.ar' } },
-              trigger: null,
-            });
-          } catch (e) {
-            Alert.alert('Error', 'No se pudo programar la notificación: ' + String(e));
-          }
-        }} />
-      </View>
+      {/* Removed test notification button: notifications should come from remote pushes.
+          Foreground notifications will be shown by the system UI; the app will handle taps.
+      */}
     </View>
   );
 }

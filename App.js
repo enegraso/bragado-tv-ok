@@ -160,14 +160,10 @@ export default function App() {
     });
 
     const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      // Received in foreground. We avoid showing an in-app Alert here so the system
+      // notification UI can display the notification (configured via setNotificationHandler).
       try {
-        const { title, body, data } = notification.request.content;
-        const actions = [];
-        if (data?.url) {
-          actions.push({ text: 'Ir', onPress: () => Linking.openURL(data.url).catch(() => {}) });
-        }
-        actions.push({ text: 'Cerrar', style: 'cancel' });
-        Alert.alert(title || 'Notificación', body || '', actions);
+        console.log('Notification received (foreground):', notification.request.content);
       } catch (e) {
         console.log('notification received handler error', e);
       }
