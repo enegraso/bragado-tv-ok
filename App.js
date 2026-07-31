@@ -122,7 +122,7 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    async function init() {
+  async function init() {
       try {
         const cfg = await getConfig();
         if (!isMounted) return;
@@ -147,6 +147,23 @@ export default function App() {
     }
 
     init();
+
+    // Request notification permission on first app start (one-time prompt)
+    (async () => {
+      try {
+        const asked = await AsyncStorage.getItem('NOTIF_PROMPTED_V1');
+        if (!asked) {
+          const perm = await Notifications.getPermissionsAsync();
+          if (perm.status !== 'granted') {
+            // prompt the user on first run
+            await Notifications.requestPermissionsAsync();
+          }
+          await AsyncStorage.setItem('NOTIF_PROMPTED_V1', '1');
+        }
+      } catch (e) {
+        console.log('error requesting notif perm on start', e);
+      }
+    })();
 
     return () => {
       isMounted = false;

@@ -12,6 +12,7 @@ export default function SettingsScreen({ onClose }) {
   const [token, setToken] = useState(null);
   const [registered, setRegistered] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState(null);
+  const [diagResult, setDiagResult] = useState(null); // temporary debug output
 
   useEffect(() => {
     let mounted = true;
@@ -106,6 +107,37 @@ export default function SettingsScreen({ onClose }) {
               Alert.alert('Error', String(e));
             }
           }} />
+        </View>
+      ) : null}
+      {/* Temporary diagnostic tool to help debug token/registration issues. Remove after testing. */}
+      <View style={{marginTop:12}}>
+        <Button title="Ejecutar diagnóstico (temporal)" onPress={async () => {
+          try {
+            const p = await Notifications.getPermissionsAsync();
+            const permStatus = p.status;
+            const token = await getExpoPushTokenAsync();
+            let regOk = false;
+            let serverList = null;
+            if (token) {
+              const deviceId = Device.osInternalBuildId || Application.androidId || 'unknown';
+              regOk = await registerTokenOnServer(token, deviceId, portal, programacion);
+            }
+            try {
+              const r = await fetch('https://tvbragado.com.ar/tokens.json');
+              serverList = await r.json();
+            } catch (e) { serverList = null; }
+            const out = { permStatus, token, regOk, serverListCount: serverList ? serverList.length : null };
+            setDiagResult(out);
+            Alert.alert('Diagnóstico', JSON.stringify(out, null, 2));
+          } catch (e) {
+            Alert.alert('Error diagnóstico', String(e));
+          }
+        }} />
+      </View>
+      {diagResult ? (
+        <View style={{marginTop:8}}>
+          <Text style={{fontSize:12,color:'#666'}}>Último diagnóstico:</Text>
+          <Text style={{fontSize:12}} selectable>{JSON.stringify(diagResult)}</Text>
         </View>
       ) : null}
     </View>
