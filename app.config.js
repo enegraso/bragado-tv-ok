@@ -36,7 +36,7 @@ export default {
       // Required for Android 13+ to request runtime notification permission
       "permissions": ["POST_NOTIFICATIONS"],
       // Ensure google-services.json is bundled into the native Android build
-      "googleServicesFile": "./google-services.json"
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
     },
 
     "updates": {
