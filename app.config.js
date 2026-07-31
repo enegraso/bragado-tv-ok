@@ -34,7 +34,9 @@ export default {
       "supportsPictureInPicture": true,
       "resizeableActivity": true,
       // Required for Android 13+ to request runtime notification permission
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": ["POST_NOTIFICATIONS"],
+      // Ensure google-services.json is bundled into the native Android build
+      "googleServicesFile": "./google-services.json"
     },
 
     "updates": {
