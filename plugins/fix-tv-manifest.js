@@ -4,15 +4,25 @@ module.exports = function fixTvManifest(config) {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
 
-    // Ensure touchscreen is not required (so TVs without touch are included)
+    // Ensure certain features are not required so TVs are not excluded
     let features = manifest["uses-feature"] || [];
-    const tsFound = features.find(f => f.$ && f.$["android:name"] === "android.hardware.touchscreen");
-    if (tsFound) {
-      tsFound.$["android:required"] = "false";
-    } else {
-      features.push({ $: { "android:name": "android.hardware.touchscreen", "android:required": "false" } });
+    const ensureNotRequired = [
+      'android.hardware.touchscreen',
+      'android.hardware.screen.portrait',
+      'android.hardware.telephony',
+      'android.hardware.camera',
+      'android.hardware.location.gps'
+    ];
+
+    for (const fname of ensureNotRequired) {
+      const found = features.find(f => f.$ && f.$['android:name'] === fname);
+      if (found) {
+        found.$['android:required'] = 'false';
+      } else {
+        features.push({ $: { 'android:name': fname, 'android:required': 'false' } });
+      }
     }
-    manifest["uses-feature"] = features;
+    manifest['uses-feature'] = features;
 
     // Add LEANBACK_LAUNCHER intent so the app is available on Android TV/Google TV
     const app = manifest.application && manifest.application[0];
