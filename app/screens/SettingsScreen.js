@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Switch, Button, StyleSheet, Alert, BackHandler, Linking } from 'react-native';
+import { View, Text, Switch, Button, StyleSheet, Alert, BackHandler, Linking, ScrollView } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getExpoPushTokenAsync, registerTokenOnServer, unregisterTokenOnServer } from '../services/notifications';
 import * as Application from 'expo-application';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen({ onClose }) {
   const [portal, setPortal] = useState(true);
@@ -12,7 +13,7 @@ export default function SettingsScreen({ onClose }) {
   const [token, setToken] = useState(null);
   const [registered, setRegistered] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState(null);
-  const [diagResult, setDiagResult] = useState(null); // temporary debug output
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let mounted = true;
@@ -80,7 +81,7 @@ export default function SettingsScreen({ onClose }) {
   }, [portal, programacion, token]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}>
       <Text style={styles.title}>Notificaciones</Text>
       <View style={styles.row}><Text>Portal (noticias)</Text><Switch value={portal} onValueChange={setPortal} /></View>
       <View style={styles.row}><Text>Programación</Text><Switch value={programacion} onValueChange={setProgramacion} /></View>
@@ -109,38 +110,7 @@ export default function SettingsScreen({ onClose }) {
           }} />
         </View>
       ) : null}
-      {/* Temporary diagnostic tool to help debug token/registration issues. Remove after testing. */}
-      <View style={{marginTop:12}}>
-        <Button title="Ejecutar diagnóstico (temporal)" onPress={async () => {
-          try {
-            const p = await Notifications.getPermissionsAsync();
-            const permStatus = p.status;
-            const token = await getExpoPushTokenAsync();
-            let regOk = false;
-            let serverList = null;
-            if (token) {
-              const deviceId = Device.osInternalBuildId || Application.androidId || 'unknown';
-              regOk = await registerTokenOnServer(token, deviceId, portal, programacion);
-            }
-            try {
-              const r = await fetch('https://tvbragado.com.ar/tokens.json');
-              serverList = await r.json();
-            } catch (e) { serverList = null; }
-            const out = { permStatus, token, regOk, serverListCount: serverList ? serverList.length : null };
-            setDiagResult(out);
-            Alert.alert('Diagnóstico', JSON.stringify(out, null, 2));
-          } catch (e) {
-            Alert.alert('Error diagnóstico', String(e));
-          }
-        }} />
-      </View>
-      {diagResult ? (
-        <View style={{marginTop:8}}>
-          <Text style={{fontSize:12,color:'#666'}}>Último diagnóstico:</Text>
-          <Text style={{fontSize:12}} selectable>{JSON.stringify(diagResult)}</Text>
-        </View>
-      ) : null}
-    </View>
+    </ScrollView>
   );
 }
 

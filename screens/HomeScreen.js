@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Linking, Modal } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, Linking, Modal, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SettingsScreen from '../app/screens/SettingsScreen';
 
@@ -15,29 +15,32 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={containerStyle}>
-      {/* gear button: place below safe area to avoid being covered by status bar */}
+    <View style={[containerStyle, { paddingTop: insets.top || 12 }]}> 
       <Pressable
-        style={{position:'absolute', top: (insets.top || 10) + 6, right:10, padding:8, zIndex: 10}}
+        style={[styles.gear, { top: (insets.top || 10) + 8 }]}
         onPress={() => setShowSettings(true)}
         accessibilityLabel="Abrir configuración"
       >
         <Text style={{color:textColor}}>⚙️</Text>
       </Pressable>
-      <Image source={source} style={styles.logo} resizeMode="contain" onLongPress={() => setShowSettings(true)} />
-      <Text style={subtitleStyle}>Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.</Text>
 
-      <Pressable style={buttonStyle} onPress={onStart} accessibilityLabel="Ver en vivo">
-        <Text style={textStyle}>VER EN VIVO</Text>
-      </Pressable>
+      <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: (insets.bottom || 12) + 24 }] }>
+        <Image source={source} style={styles.logo} resizeMode="contain" onLongPress={() => setShowSettings(true)} />
+        <Text style={subtitleStyle}>Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.</Text>
 
-      <Pressable style={buttonStyle} onPress={() => Linking.openURL('https://bragadotv.com.ar')} accessibilityLabel="Web oficial">
-        <Text style={textStyle}>WEB OFICIAL</Text>
-      </Pressable>
+        <Pressable style={buttonStyle} onPress={onStart} accessibilityLabel="Ver en vivo">
+          <Text style={textStyle}>VER EN VIVO</Text>
+        </Pressable>
 
-      <Pressable style={buttonStyle} onPress={() => Linking.openURL('tel:+5492342480567') } accessibilityLabel="Llamar">
-        <Text style={textStyle}>LLAMAR</Text>
-      </Pressable>
+        <Pressable style={buttonStyle} onPress={() => Linking.openURL('https://bragadotv.com.ar')} accessibilityLabel="Web oficial">
+          <Text style={textStyle}>WEB OFICIAL</Text>
+        </Pressable>
+
+        <Pressable style={buttonStyle} onPress={() => Linking.openURL('tel:+5492342480567') } accessibilityLabel="Llamar">
+          <Text style={textStyle}>LLAMAR</Text>
+        </Pressable>
+      </ScrollView>
+
       <Modal visible={showSettings} animationType="slide" onRequestClose={() => setShowSettings(false)}>
         <SettingsScreen onClose={() => setShowSettings(false)} />
       </Modal>
@@ -75,5 +78,18 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '600',
+  }
+  ,
+  gear: {
+    position: 'absolute',
+    right: 10,
+    padding: 8,
+    zIndex: 10,
+    backgroundColor: 'transparent'
+  },
+  scrollContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24
   }
 });
