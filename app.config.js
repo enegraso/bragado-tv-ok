@@ -2,18 +2,19 @@ export default {
   "expo": {
     "name": "Bragado TV OK",
     "slug": "bragado-tv-ok",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "default",
 
-    "plugins": [
+      "plugins": [
       [
         "@react-native-tvos/config-tv",
         {
           "androidTVBanner": "./assets/tvbannernew.png"
         }
       ],
-      "./plugins/fix-microphone"
-    ],
+      "./plugins/fix-microphone",
+      "./plugins/fix-tv-manifest"
+      ],
 
     "androidStatusBar": {
       "translucent": true,
