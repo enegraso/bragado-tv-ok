@@ -6,7 +6,7 @@ export async function getConfig() {
   // fondo: #000000
   // botonfondo: #222222
   // colorletras: #ffffff
-  const url = 'https://tvbragado.com.ar/config.txt';
+    const url = 'https://tvbragado.com.ar/admin/config.txt';
   try {
     const res = await fetch(url, { cache: 'no-store' });
     const text = await res.text();

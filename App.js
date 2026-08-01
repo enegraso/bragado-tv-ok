@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, StatusBar, Platform, AppState, Alert, Linking } from 'react-native';
+import * as Notifications from 'expo-notifications';
 // Use expo-av player in a dedicated PlayerScreen for compatibility with Expo Go
 import * as Updates from 'expo-updates';
 import * as Application from 'expo-application';
@@ -102,6 +103,7 @@ async function checkStoreVersion() {
 
 import HomeScreen from './screens/HomeScreen';
 import PlayerScreen from './screens/PlayerScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function App() {
   const isTV = Platform.isTV;
@@ -120,7 +122,7 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    async function init() {
+  async function init() {
       try {
         const cfg = await getConfig();
         if (!isMounted) return;
@@ -146,8 +148,66 @@ export default function App() {
 
     init();
 
+    // Request notification permission on first app start (one-time prompt)
+    (async () => {
+      try {
+        const asked = await AsyncStorage.getItem('NOTIF_PROMPTED_V1');
+        if (!asked) {
+          const perm = await Notifications.getPermissionsAsync();
+          if (perm.status !== 'granted') {
+            // prompt the user on first run
+            await Notifications.requestPermissionsAsync();
+          }
+          await AsyncStorage.setItem('NOTIF_PROMPTED_V1', '1');
+        }
+      } catch (e) {
+        console.log('error requesting notif perm on start', e);
+      }
+    })();
+
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  // Notification handlers: foreground display via an Alert/modal and response handling
+  useEffect(() => {
+    // Configure handler so system notifications don't auto-show while app is foreground
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: true, shouldSetBadge: false }),
+    });
+
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      // Received in foreground. We avoid showing an in-app Alert here so the system
+      // notification UI can display the notification (configured via setNotificationHandler).
+      try {
+        console.log('Notification received (foreground):', notification.request.content);
+      } catch (e) {
+        console.log('notification received handler error', e);
+      }
+    });
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      try {
+        const data = response.notification.request.content.data || {};
+        if (data.url) {
+          Linking.openURL(data.url).catch(() => {});
+        } else if (data.type === 'programacion') {
+          // Navigate to the player (Live) when a "programacion" notification is tapped.
+          // If the notification provides a stream URL, use it; otherwise use the current streamUrl.
+          try {
+            if (data.stream) setStreamUrl(data.stream);
+          } catch (e) {}
+          setShowHome(false);
+        }
+      } catch (e) {
+        console.log('notification response handler error', e);
+      }
+    });
+
+    return () => {
+      try { receivedSub && receivedSub.remove && receivedSub.remove(); } catch (e) {}
+      try { responseSub && responseSub.remove && responseSub.remove(); } catch (e) {}
     };
   }, []);
 
@@ -162,19 +222,21 @@ export default function App() {
   }, []);
 
   // ───────────── Render ─────────────
-  if (showHome) {
-    return (
-      <HomeScreen
-        onStart={() => setShowHome(false)}
-        logoUrl={logoUrl}
-        bgColor={bgColor}
-        buttonBg={buttonBg}
-        textColor={textColor}
-      />
-    );
-  }
-
-  return <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} />;
+  return (
+    <SafeAreaProvider>
+      {showHome ? (
+        <HomeScreen
+          onStart={() => setShowHome(false)}
+          logoUrl={logoUrl}
+          bgColor={bgColor}
+          buttonBg={buttonBg}
+          textColor={textColor}
+        />
+      ) : (
+        <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} />
+      )}
+    </SafeAreaProvider>
+  );
 }
 
 // ───────────── Styles ─────────────

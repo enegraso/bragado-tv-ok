@@ -2,24 +2,28 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "development"
     },
     "preview": {
       "android": {
         "buildType": "apk",
         "autoIncrement": true
-      }
+      },
+      "environment": "preview"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "environment": "production"
     },
     "production_tv": {
       "extends": "production",
+      "environment": "production",
       "env": {
         "EXPO_TV": "1"
       },
-    "channel": "production"
-  }
+      "channel": "production"
+    }
   },
   "cli": {
     "appVersionSource": "remote"

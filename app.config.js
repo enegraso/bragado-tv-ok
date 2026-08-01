@@ -2,18 +2,19 @@ export default {
   "expo": {
     "name": "Bragado TV OK",
     "slug": "bragado-tv-ok",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "default",
 
-    "plugins": [
+      "plugins": [
       [
         "@react-native-tvos/config-tv",
         {
           "androidTVBanner": "./assets/tvbannernew.png"
         }
       ],
-      "./plugins/fix-microphone"
-    ],
+      "./plugins/fix-microphone",
+      "./plugins/fix-tv-manifest"
+      ],
 
     "androidStatusBar": {
       "translucent": true,
@@ -32,7 +33,11 @@ export default {
       "package": "com.bragado.tvok",
       "versionCode": 1,
       "supportsPictureInPicture": true,
-      "resizeableActivity": true
+      "resizeableActivity": true,
+      // Required for Android 13+ to request runtime notification permission
+      "permissions": ["POST_NOTIFICATIONS"],
+      // Ensure google-services.json is bundled into the native Android build
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
     },
 
     "updates": {
