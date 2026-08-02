@@ -22,7 +22,11 @@ expo-env.d.ts
 google-services.json
 
 # admin folder (uploaded via FTP to external server)
-/admin/
+# We commit PHP admin scripts but keep credentials and data files ignored
+admin/tokens.json
+admin/*.p8
+admin/push_log.txt
+admin/*.json
 
 # Metro
 .metro-health-check*
