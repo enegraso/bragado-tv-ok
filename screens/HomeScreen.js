@@ -3,7 +3,7 @@ import { View, Text, Image, Pressable, StyleSheet, Linking, Modal, ScrollView } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SettingsScreen from '../app/screens/SettingsScreen';
 
-export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.08)', textColor = '#fff' }) {
+export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.08)', textColor = '#fff', slogan = 'Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.', buttonFocusBorder = '#fff', buttonFocusWidth = 3 }) {
   const source = logoUrl ? { uri: logoUrl } : require('../assets/logo.png');
 
   const containerStyle = [styles.container, { backgroundColor: bgColor }];
@@ -26,19 +26,13 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
 
       <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: (insets.bottom || 12) + 24 }] }>
         <Image source={source} style={styles.logo} resizeMode="contain" onLongPress={() => setShowSettings(true)} />
-        <Text style={subtitleStyle}>Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.</Text>
+        <Text style={subtitleStyle}>{slogan}</Text>
 
-        <Pressable style={buttonStyle} onPress={onStart} accessibilityLabel="Ver en vivo">
-          <Text style={textStyle}>VER EN VIVO</Text>
-        </Pressable>
+        <FocusableButton label="VER EN VIVO" onPress={onStart} buttonStyle={buttonStyle} textStyle={textStyle} focusBorderColor={buttonFocusBorder} focusBorderWidth={buttonFocusWidth} />
 
-        <Pressable style={buttonStyle} onPress={() => Linking.openURL('https://bragadotv.com.ar')} accessibilityLabel="Web oficial">
-          <Text style={textStyle}>WEB OFICIAL</Text>
-        </Pressable>
+        <FocusableButton label="WEB OFICIAL" onPress={() => Linking.openURL('https://bragadotv.com.ar')} buttonStyle={buttonStyle} textStyle={textStyle} focusBorderColor={buttonFocusBorder} focusBorderWidth={buttonFocusWidth} />
 
-        <Pressable style={buttonStyle} onPress={() => Linking.openURL('tel:+5492342480567') } accessibilityLabel="Llamar">
-          <Text style={textStyle}>LLAMAR</Text>
-        </Pressable>
+        <FocusableButton label="LLAMAR" onPress={() => Linking.openURL('tel:+5492342480567')} buttonStyle={buttonStyle} textStyle={textStyle} focusBorderColor={buttonFocusBorder} focusBorderWidth={buttonFocusWidth} />
       </ScrollView>
 
       <Modal visible={showSettings} animationType="slide" onRequestClose={() => setShowSettings(false)}>
@@ -93,3 +87,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24
   }
 });
+
+function FocusableButton({ label, onPress, buttonStyle, textStyle, focusBorderColor, focusBorderWidth }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      focusable={true}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onPress={onPress}
+      style={[buttonStyle, focused ? { borderWidth: focusBorderWidth, borderColor: focusBorderColor } : null]}
+    >
+      <Text style={textStyle}>{label}</Text>
+    </Pressable>
+  );
+}

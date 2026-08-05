@@ -32,6 +32,9 @@ export async function getConfig() {
       fondo: values.fondo || null,
       botonfondo: values.botonfondo || null,
       colorletras: values.colorletras || null,
+      slogan: values.slogan || null,
+      boton_border: values.boton_border || null,
+      boton_border_width: values.boton_border_width || null,
     };
   } catch (e) {
     console.log('remoteConfig: failed to fetch', e);

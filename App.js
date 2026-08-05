@@ -113,6 +113,9 @@ export default function App() {
   const [bgColor, setBgColor] = useState('#000000');
   const [buttonBg, setButtonBg] = useState('rgba(255,255,255,0.08)');
   const [textColor, setTextColor] = useState('#ffffff');
+  const [slogan, setSlogan] = useState('Canal de streaming en vivo desde Bragado...');
+  const [buttonFocusBorder, setButtonFocusBorder] = useState('#ffffff');
+  const [buttonFocusWidth, setButtonFocusWidth] = useState(3);
   const [showHome, setShowHome] = useState(true);
 
   // Note: the original implementation used expo-video's native player.
@@ -131,6 +134,9 @@ export default function App() {
         if (cfg?.fondo) setBgColor(cfg.fondo);
         if (cfg?.botonfondo) setButtonBg(cfg.botonfondo);
         if (cfg?.colorletras) setTextColor(cfg.colorletras);
+        if (cfg?.slogan) setSlogan(cfg.slogan);
+        if (cfg?.boton_border) setButtonFocusBorder(cfg.boton_border);
+        if (cfg?.boton_border_width) setButtonFocusWidth(parseInt(cfg.boton_border_width,10) || 3);
       } catch (e) {
         console.log('Config remota no disponible, usando default');
       }
@@ -231,9 +237,12 @@ export default function App() {
           bgColor={bgColor}
           buttonBg={buttonBg}
           textColor={textColor}
+          slogan={slogan}
+          buttonFocusBorder={buttonFocusBorder}
+          buttonFocusWidth={buttonFocusWidth}
         />
       ) : (
-        <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} />
+        <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} slogan={slogan} buttonFocusBorder={buttonFocusBorder} buttonFocusWidth={buttonFocusWidth} />
       )}
     </SafeAreaProvider>
   );
