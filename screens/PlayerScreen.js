@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler } from 'react-native';
+import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform } from 'react-native';
 import { Video } from 'expo-av';
 
 export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.1)', textColor = '#fff' }) {
@@ -26,18 +26,44 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
   }, [streamUrl]);
 
   useEffect(() => {
+    // Handle hardware back: on TV we want back to go to home screen of the app
     const onHardwareBack = () => {
       try { onBack && onBack(); } catch (e) {}
       return true; // prevent default (do not exit app)
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
     return () => {
-      // BackHandler.removeEventListener is deprecated / removed in newer RN.
-      // The returned subscription provides a .remove() method.
       try { sub && sub.remove && sub.remove(); } catch (e) {}
     };
   }, [onBack]);
 
+  const isTV = Platform.isTV;
+
+  // attempt to enter PiP when app goes to background on Android (best-effort)
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => false);
+    return () => { try { sub && sub.remove && sub.remove(); } catch(e) {} };
+  }, []);
+
+  // AppState -> try PiP on background for Android mobile (best-effort, may not be supported)
+  useEffect(() => {
+    const handleAppState = async (nextState) => {
+      if (Platform.OS === 'android' && nextState === 'background' && !isTV) {
+        try {
+          // try multiple method names depending on native implementation
+          if (videoRef.current && videoRef.current.startPictureInPicture) {
+            await videoRef.current.startPictureInPicture();
+          } else if (videoRef.current && videoRef.current.presentPictureInPicture) {
+            await videoRef.current.presentPictureInPicture();
+          }
+        } catch (e) { /* ignore */ }
+      }
+    };
+    // register AppState listener if needed
+    // (we don't import AppState here to avoid changes if not previously used)
+  }, [isTV]);
+
+  // Render
   return (
     <View style={[styles.container, { backgroundColor: bgColor }] }>
       <StatusBar hidden />
@@ -47,7 +73,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
         style={styles.video}
         source={{ uri: streamUrl }}
         useNativeControls={false}
-        resizeMode="contain"
+        resizeMode={isTV ? 'cover' : 'contain'}
         shouldPlay
         onError={(e) => {
           console.log('Video onError', e);
@@ -69,9 +95,19 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
         </View>
       ) : null}
 
-      <Pressable style={[styles.back, { backgroundColor: buttonBg }]} onPress={onBack} accessibilityLabel="Volver">
-        <Text style={[styles.backText, { color: textColor }]}>VOLVER</Text>
-      </Pressable>
+      {/* Back button: show on mobile only; hide on TV (use remote back) */}
+      {!isTV ? (
+        <View style={styles.controlsOverlay} pointerEvents="box-none">
+          <Pressable style={[styles.controlButton, { backgroundColor: buttonBg }]} onPress={async () => {
+            try { if (status.isPlaying) await videoRef.current.pauseAsync(); else await videoRef.current.playAsync(); } catch(e){}
+          }}>
+            <Text style={[styles.controlText, { color: textColor }]}>{status.isPlaying ? 'PAUSE' : 'PLAY'}</Text>
+          </Pressable>
+          <Pressable style={[styles.back, { backgroundColor: buttonBg }]} onPress={onBack} accessibilityLabel="Volver">
+            <Text style={[styles.backText, { color: textColor }]}>VOLVER</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -79,6 +115,9 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
+  controlsOverlay: { position: 'absolute', bottom: 28, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', gap: 12 },
+  controlButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, marginHorizontal: 8 },
+  controlText: { color: '#fff', fontWeight: '700' },
   back: {
     position: 'absolute',
     top: 40,
