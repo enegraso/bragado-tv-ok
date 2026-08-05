@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform } from 'react-native';
+import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform, TVEventHandler } from 'react-native';
 import { Video } from 'expo-av';
 
 export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.1)', textColor = '#fff' }) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
   const [error, setError] = useState(null);
-  const [overlayVisible, setOverlayVisible] = useState(true);
+  const isTV = Platform.isTV;
+  const [overlayVisible, setOverlayVisible] = useState(isTV ? false : true);
   const hideTimerRef = useRef(null);
+  const tvHandlerRef = useRef(null);
 
   useEffect(() => {
     setError(null);
@@ -27,19 +29,14 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
     };
   }, [streamUrl]);
 
-  // Helper to show overlay and optionally hide after timeout on mobile
+  // Helper to show overlay and hide after timeout
   const showOverlay = (autoHide = true) => {
     setOverlayVisible(true);
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
-    if (autoHide && Platform.OS !== 'android' && Platform.OS !== 'ios') {
-      // do not auto-hide on TV; only mobile should auto-hide
-      return;
-    }
-    if (autoHide && Platform.OS !== 'android' && Platform.OS !== 'ios') return;
-    if (autoHide && Platform.isTV === false) {
+    if (autoHide) {
       hideTimerRef.current = setTimeout(() => setOverlayVisible(false), 4000);
     }
   };
@@ -63,6 +60,30 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
       try { sub && sub.remove && sub.remove(); } catch (e) {}
     };
   }, [onBack]);
+
+  // TV select handler: toggle overlay on OK (select) button
+  useEffect(() => {
+    if (!isTV) return;
+    const tvEventHandler = new TVEventHandler();
+    tvHandlerRef.current = tvEventHandler;
+    tvEventHandler.enable(null, (cmp, evt) => {
+      try {
+        if (evt && evt.eventType === 'select') {
+          // toggle overlay visibility and reset timer
+          if (overlayVisible) {
+            setOverlayVisible(false);
+            if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+          } else {
+            showOverlay(true);
+          }
+        }
+      } catch (e) {}
+    });
+    return () => {
+      try { tvEventHandler.disable(); } catch (e) {}
+      tvHandlerRef.current = null;
+    };
+  }, [overlayVisible, isTV]);
 
   const isTV = Platform.isTV;
 
