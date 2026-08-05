@@ -71,7 +71,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fondo = $_POST['fondo'] ?? '#000000';
     $botonfondo = $_POST['botonfondo'] ?? 'rgba(255,255,255,0.08)';
     $colorletras = $_POST['colorletras'] ?? '#ffffff';
-    $ok = write_config($CONFIG_FILE, $logo, $stream, ['fondo'=>$fondo,'botonfondo'=>$botonfondo,'colorletras'=>$colorletras]);
+    // new fields
+    $slogan = $_POST['slogan'] ?? '';
+    $boton_border = $_POST['boton_border'] ?? '';
+    $boton_border_width = $_POST['boton_border_width'] ?? '';
+
+    $extras = [
+      'fondo' => $fondo,
+      'botonfondo' => $botonfondo,
+      'colorletras' => $colorletras,
+      'slogan' => $slogan,
+      'boton_border' => $boton_border,
+      'boton_border_width' => $boton_border_width
+    ];
+
+    $ok = write_config($CONFIG_FILE, $logo, $stream, $extras);
     $message = $ok ? 'Guardado correctamente' : 'Error al guardar';
 }
 
