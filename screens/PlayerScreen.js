@@ -17,6 +17,10 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
       try {
         if (videoRef.current) {
           await videoRef.current.loadAsync({ uri: streamUrl }, { shouldPlay: true, isLooping: false });
+          // start playback
+          try { await videoRef.current.playAsync(); } catch (e) {}
+          // try to present fullscreen if available (native)
+          try { if (videoRef.current.presentFullscreenPlayer) await videoRef.current.presentFullscreenPlayer(); } catch (e) {}
         }
       } catch (e) {
         console.log('Error loading stream in expo-av Video:', e);
@@ -111,7 +115,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
     // (we don't import AppState here to avoid changes if not previously used)
   }, [isTV]);
 
-  // Render
+  // Render: use native controls only; fullscreen by style and attempted native fullscreen call
   return (
     <View style={[styles.container, { backgroundColor: bgColor }] }>
       <StatusBar hidden />
@@ -120,8 +124,8 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
         ref={videoRef}
         style={styles.video}
         source={{ uri: streamUrl }}
-        useNativeControls={false}
-        resizeMode={isTV ? 'cover' : 'contain'}
+        useNativeControls={true}
+        resizeMode={'cover'}
         shouldPlay
         onError={(e) => {
           console.log('Video onError', e);
@@ -141,34 +145,6 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
             <Text style={[styles.retryText, { color: textColor }]}>REINTENTAR</Text>
           </Pressable>
         </View>
-      ) : null}
-
-      {/* Back button: show on mobile only; hide on TV (use remote back) */}
-      {!isTV ? (
-        overlayVisible ? (
-          <View style={styles.controlsOverlay} pointerEvents="box-none">
-            <Pressable
-              focusable={true}
-              onFocus={() => { showOverlay(true); }}
-              onBlur={() => { if (!Platform.isTV) hideOverlay(); }}
-              style={[styles.controlButton, { backgroundColor: buttonBg }]}
-              onPress={async () => { try { if (status.isPlaying) await videoRef.current.pauseAsync(); else await videoRef.current.playAsync(); } catch(e){} }}
-            >
-              <Text style={[styles.controlText, { color: textColor }]}>{status.isPlaying ? 'PAUSE' : 'PLAY'}</Text>
-            </Pressable>
-
-            <Pressable
-              focusable={true}
-              onFocus={() => { showOverlay(true); }}
-              onBlur={() => { if (!Platform.isTV) hideOverlay(); }}
-              style={[styles.controlButton, { backgroundColor: buttonBg }]}
-              onPress={onBack}
-              accessibilityLabel="Volver"
-            >
-              <Text style={[styles.controlText, { color: textColor }]}>VOLVER</Text>
-            </Pressable>
-          </View>
-        ) : null
       ) : null}
     </View>
   );
