@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Linking, Modal, ScrollView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, Image, Pressable, StyleSheet, Linking, Modal, ScrollView, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SettingsScreen from '../app/screens/SettingsScreen';
 
@@ -13,19 +13,21 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
 
   const [showSettings, setShowSettings] = useState(false);
   const [gearFocused, setGearFocused] = useState(false);
+  const gearAnim = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[containerStyle, { paddingTop: insets.top || 12 }]}> 
       <Pressable
         focusable={true}
-        onFocus={() => setGearFocused(true)}
-        onBlur={() => setGearFocused(false)}
-        style={[styles.gear, { top: (insets.top || 10) + 8 }, gearFocused ? { borderWidth: buttonFocusWidth, borderColor: buttonFocusBorder, borderRadius: 8 } : null]}
+        onFocus={() => { setGearFocused(true); Animated.timing(gearAnim, { toValue: 1, duration: 180, easing: Easing.out(Easing.ease), useNativeDriver: true }).start(); }}
+        onBlur={() => { setGearFocused(false); Animated.timing(gearAnim, { toValue: 0, duration: 120, easing: Easing.in(Easing.ease), useNativeDriver: true }).start(); }}
         onPress={() => setShowSettings(true)}
         accessibilityLabel="Abrir configuración"
       >
-        <Text style={{color:textColor}}>⚙️</Text>
+        <Animated.View style={[styles.gear, { top: (insets.top || 10) + 8 }, { transform: [{ scale: gearAnim.interpolate({ inputRange: [0,1], outputRange: [1, 1.06] }) }] }, gearFocused ? { borderWidth: buttonFocusWidth, borderColor: buttonFocusBorder, borderRadius: 8 } : null] }>
+          <Text style={{color:textColor}}>⚙️</Text>
+        </Animated.View>
       </Pressable>
 
       <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: (insets.bottom || 12) + 24 }] }>
@@ -94,15 +96,19 @@ const styles = StyleSheet.create({
 
 function FocusableButton({ label, onPress, buttonStyle, textStyle, focusBorderColor, focusBorderWidth }) {
   const [focused, setFocused] = useState(false);
+  const anim = useRef(new Animated.Value(0)).current;
+  const onFocus = () => { setFocused(true); Animated.timing(anim, { toValue: 1, duration: 180, easing: Easing.out(Easing.ease), useNativeDriver: true }).start(); };
+  const onBlur = () => { setFocused(false); Animated.timing(anim, { toValue: 0, duration: 120, easing: Easing.in(Easing.ease), useNativeDriver: true }).start(); };
   return (
     <Pressable
       focusable={true}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      onFocus={onFocus}
+      onBlur={onBlur}
       onPress={onPress}
-      style={[buttonStyle, focused ? { borderWidth: focusBorderWidth, borderColor: focusBorderColor } : null]}
     >
-      <Text style={textStyle}>{label}</Text>
+      <Animated.View style={[buttonStyle, { transform: [{ scale: anim.interpolate({ inputRange: [0,1], outputRange: [1, 1.04] }) }] }, focused ? { borderWidth: focusBorderWidth, borderColor: focusBorderColor } : null]}>
+        <Text style={textStyle}>{label}</Text>
+      </Animated.View>
     </Pressable>
   );
 }
