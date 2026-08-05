@@ -12,12 +12,16 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
   const subtitleStyle = [styles.subtitle, { color: textColor }];
 
   const [showSettings, setShowSettings] = useState(false);
+  const [gearFocused, setGearFocused] = useState(false);
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[containerStyle, { paddingTop: insets.top || 12 }]}> 
       <Pressable
-        style={[styles.gear, { top: (insets.top || 10) + 8 }]}
+        focusable={true}
+        onFocus={() => setGearFocused(true)}
+        onBlur={() => setGearFocused(false)}
+        style={[styles.gear, { top: (insets.top || 10) + 8 }, gearFocused ? { borderWidth: buttonFocusWidth, borderColor: buttonFocusBorder, borderRadius: 8 } : null]}
         onPress={() => setShowSettings(true)}
         accessibilityLabel="Abrir configuración"
       >
