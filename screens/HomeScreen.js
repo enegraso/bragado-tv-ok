@@ -19,14 +19,16 @@ export default function HomeScreen({ onStart, logoUrl, bgColor = '#000', buttonB
   return (
     <View style={[containerStyle, { paddingTop: insets.top || 12 }]}> 
       <Pressable
+        style={[styles.gear, { top: (insets.top || 10) + 8 }]}
         focusable={true}
+        accessible={true}
         onFocus={() => { setGearFocused(true); Animated.timing(gearAnim, { toValue: 1, duration: 180, easing: Easing.out(Easing.ease), useNativeDriver: true }).start(); }}
         onBlur={() => { setGearFocused(false); Animated.timing(gearAnim, { toValue: 0, duration: 120, easing: Easing.in(Easing.ease), useNativeDriver: true }).start(); }}
         onPress={() => setShowSettings(true)}
         accessibilityLabel="Abrir configuración"
       >
-        <Animated.View style={[styles.gear, { top: (insets.top || 10) + 8 }, { transform: [{ scale: gearAnim.interpolate({ inputRange: [0,1], outputRange: [1, 1.06] }) }] }, gearFocused ? { borderWidth: buttonFocusWidth, borderColor: buttonFocusBorder, borderRadius: 8 } : null] }>
-          <Text style={{color:textColor}}>⚙️</Text>
+        <Animated.View style={[{ transform: [{ scale: gearAnim.interpolate({ inputRange: [0,1], outputRange: [1, 1.06] }) }] }, gearFocused ? { borderWidth: buttonFocusWidth, borderColor: buttonFocusBorder, borderRadius: 8, padding: 6 } : { padding: 6 }] }>
+          <Text style={{color:textColor,fontSize:20}}>⚙️</Text>
         </Animated.View>
       </Pressable>
 
