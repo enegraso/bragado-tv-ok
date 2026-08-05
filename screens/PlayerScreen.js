@@ -6,6 +6,8 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
   const [error, setError] = useState(null);
+  const [overlayVisible, setOverlayVisible] = useState(true);
+  const hideTimerRef = useRef(null);
 
   useEffect(() => {
     setError(null);
@@ -24,6 +26,31 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
       try { videoRef.current && videoRef.current.unloadAsync(); } catch (e) {}
     };
   }, [streamUrl]);
+
+  // Helper to show overlay and optionally hide after timeout on mobile
+  const showOverlay = (autoHide = true) => {
+    setOverlayVisible(true);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (autoHide && Platform.OS !== 'android' && Platform.OS !== 'ios') {
+      // do not auto-hide on TV; only mobile should auto-hide
+      return;
+    }
+    if (autoHide && Platform.OS !== 'android' && Platform.OS !== 'ios') return;
+    if (autoHide && Platform.isTV === false) {
+      hideTimerRef.current = setTimeout(() => setOverlayVisible(false), 4000);
+    }
+  };
+
+  const hideOverlay = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    setOverlayVisible(false);
+  };
 
   useEffect(() => {
     // Handle hardware back: on TV we want back to go to home screen of the app
@@ -97,16 +124,30 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 
       {/* Back button: show on mobile only; hide on TV (use remote back) */}
       {!isTV ? (
-        <View style={styles.controlsOverlay} pointerEvents="box-none">
-          <Pressable style={[styles.controlButton, { backgroundColor: buttonBg }]} onPress={async () => {
-            try { if (status.isPlaying) await videoRef.current.pauseAsync(); else await videoRef.current.playAsync(); } catch(e){}
-          }}>
-            <Text style={[styles.controlText, { color: textColor }]}>{status.isPlaying ? 'PAUSE' : 'PLAY'}</Text>
-          </Pressable>
-          <Pressable style={[styles.back, { backgroundColor: buttonBg }]} onPress={onBack} accessibilityLabel="Volver">
-            <Text style={[styles.backText, { color: textColor }]}>VOLVER</Text>
-          </Pressable>
-        </View>
+        overlayVisible ? (
+          <View style={styles.controlsOverlay} pointerEvents="box-none">
+            <Pressable
+              focusable={true}
+              onFocus={() => { showOverlay(true); }}
+              onBlur={() => { if (!Platform.isTV) hideOverlay(); }}
+              style={[styles.controlButton, { backgroundColor: buttonBg }]}
+              onPress={async () => { try { if (status.isPlaying) await videoRef.current.pauseAsync(); else await videoRef.current.playAsync(); } catch(e){} }}
+            >
+              <Text style={[styles.controlText, { color: textColor }]}>{status.isPlaying ? 'PAUSE' : 'PLAY'}</Text>
+            </Pressable>
+
+            <Pressable
+              focusable={true}
+              onFocus={() => { showOverlay(true); }}
+              onBlur={() => { if (!Platform.isTV) hideOverlay(); }}
+              style={[styles.controlButton, { backgroundColor: buttonBg }]}
+              onPress={onBack}
+              accessibilityLabel="Volver"
+            >
+              <Text style={[styles.controlText, { color: textColor }]}>VOLVER</Text>
+            </Pressable>
+          </View>
+        ) : null
       ) : null}
     </View>
   );
@@ -115,9 +156,9 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
-  controlsOverlay: { position: 'absolute', bottom: 28, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', gap: 12 },
-  controlButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, marginHorizontal: 8 },
-  controlText: { color: '#fff', fontWeight: '700' },
+  controlsOverlay: { position: 'absolute', bottom: 28, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  controlButton: { paddingVertical: 10, paddingHorizontal: 22, borderRadius: 8, marginHorizontal: 8, minWidth: 140, alignItems: 'center' },
+  controlText: { color: '#fff', fontWeight: '700', textAlign: 'center' },
   back: {
     position: 'absolute',
     top: 40,
