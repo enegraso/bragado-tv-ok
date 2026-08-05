@@ -89,8 +89,6 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
     };
   }, [overlayVisible, isTV]);
 
-  const isTV = Platform.isTV;
-
   // attempt to enter PiP when app goes to background on Android (best-effort)
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => false);
