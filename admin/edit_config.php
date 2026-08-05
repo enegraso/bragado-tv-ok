@@ -56,7 +56,8 @@ function write_config($path, $logo, $stream, $extras) {
     $lines = [];
     $lines[] = trim($logo);
     $lines[] = trim($stream);
-    foreach (['fondo','botonfondo','colorletras'] as $k) {
+    // Write known keys in a stable order so parsing remains predictable
+    foreach (['fondo','botonfondo','colorletras','slogan','boton_border','boton_border_width'] as $k) {
         if (isset($extras[$k])) $lines[] = "$k: " . trim($extras[$k]);
     }
     return file_put_contents($path, implode("\n", $lines) . "\n") !== false;
@@ -92,6 +93,7 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
     input[type=text], input[type=password], input[type=range], select{width:100%;padding:8px;border:1px solid #d0d7de;border-radius:6px}
     input[type=submit]{background:#0b74de;color:#fff;border:0;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer}
     .color-swatch{display:inline-block;width:28px;height:28px;border:1px solid #ccc;margin-left:8px;vertical-align:middle;border-radius:4px}
+    .logo-preview{width:100%;height:auto;max-width:480px;display:block;margin:0 auto 12px}
     @media (max-width:640px){.form-row{flex-direction:column;align-items:stretch}.form-row label{width:auto;margin-bottom:6px}}
     .hint{font-size:13px;color:#666}
   </style>
@@ -124,6 +126,11 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
       </div>
 
       <div class="form-row">
+        <label>Slogan</label>
+        <div class="control"><input type="text" id="slogan_text" name="slogan" value="<?php echo htmlspecialchars($extras['slogan'] ?? 'Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.'); ?>" placeholder="Texto corto para slogan"/></div>
+      </div>
+
+      <div class="form-row">
         <label>Fondo</label>
         <div class="control">
           <?php $f_hex = extract_hex($extras['fondo'] ?? '#000000') ?? '#000000'; ?>
@@ -141,6 +148,23 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
           <input type="range" id="boton_alpha" min="0" max="1" step="0.01" value="<?php echo htmlspecialchars($btn_alpha); ?>" />
           <input type="text" id="boton_text" name="botonfondo" value="<?php echo htmlspecialchars($extras['botonfondo'] ?? 'rgba(255,255,255,0.08)'); ?>" />
           <span id="boton_sw" class="color-swatch" style="background:<?php echo htmlspecialchars($extras['botonfondo'] ?? 'rgba(255,255,255,0.08)'); ?>"></span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Borde botón (color)</label>
+        <div class="control">
+          <?php $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff'; ?>
+          <input type="color" id="boton_border_color" value="<?php echo htmlspecialchars($bb_hex); ?>" />
+          <input type="text" id="boton_border_text" name="boton_border" value="<?php echo htmlspecialchars($extras['boton_border'] ?? '#ffffff'); ?>" />
+          <span id="boton_border_sw" class="color-swatch" style="background:<?php echo htmlspecialchars($extras['boton_border'] ?? '#ffffff'); ?>"></span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Borde (px)</label>
+        <div class="control">
+          <input type="number" min="0" max="20" id="boton_border_width" name="boton_border_width" value="<?php echo htmlspecialchars($extras['boton_border_width'] ?? '3'); ?>" />
         </div>
       </div>
 
@@ -224,6 +248,26 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
           logoPreview.style.display = 'block';
         });
       }
+
+      // make swatches clickable to open color pickers
+      const swatchBindings = [
+        {sw: 'fondo_sw', color: 'fondo_color', text: 'fondo_text'},
+        {sw: 'boton_sw', color: 'boton_color', text: 'boton_text'},
+        {sw: 'texto_sw', color: 'texto_color', text: 'texto_text'},
+        {sw: 'boton_border_sw', color: 'boton_border_color', text: 'boton_border_text'}
+      ];
+      swatchBindings.forEach(b => {
+        const sw = document.getElementById(b.sw);
+        const color = document.getElementById(b.color);
+        const txt = document.getElementById(b.text);
+        if (sw && color) {
+          sw.style.cursor = 'pointer';
+          sw.addEventListener('click', () => { try { color.click(); } catch(e){} });
+        }
+        if (txt && sw) {
+          txt.addEventListener('input', () => { sw.style.background = txt.value; });
+        }
+      });
     });
     </script>
   </body>
