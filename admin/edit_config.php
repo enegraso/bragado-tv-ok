@@ -250,6 +250,8 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
     document.addEventListener('DOMContentLoaded', function(){
       setVal('fondo_text','fondo_color','fondo_text','fondo_sw');
       setVal('texto_text','texto_color','texto_text','texto_sw');
+      // border color swatch/input binding
+      setVal('boton_border_text','boton_border_color','boton_border_text','boton_border_sw');
       initBoton();
       // logo preview live update
       const logoInput = document.getElementById('logo_text');
