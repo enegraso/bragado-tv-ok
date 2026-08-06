@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform, TVEventHandler } from 'react-native';
+import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform, TVEventHandler, useWindowDimensions } from 'react-native';
 import { Video } from 'expo-av';
 
 export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.1)', textColor = '#fff' }) {
@@ -10,6 +10,8 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
   const [overlayVisible, setOverlayVisible] = useState(isTV ? false : true);
   const hideTimerRef = useRef(null);
   const tvHandlerRef = useRef(null);
+  const { width: winW, height: winH } = useWindowDimensions();
+  const isLandscape = winW > winH;
 
   useEffect(() => {
     setError(null);
@@ -19,8 +21,8 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
           await videoRef.current.loadAsync({ uri: streamUrl }, { shouldPlay: true, isLooping: false });
           // start playback
           try { await videoRef.current.playAsync(); } catch (e) {}
-          // try to present fullscreen if available (native)
-          try { if (videoRef.current.presentFullscreenPlayer) await videoRef.current.presentFullscreenPlayer(); } catch (e) {}
+          // try to present fullscreen if available (native) on mobile only
+          try { if (!isTV && videoRef.current.presentFullscreenPlayer) await videoRef.current.presentFullscreenPlayer(); } catch (e) {}
         }
       } catch (e) {
         console.log('Error loading stream in expo-av Video:', e);
@@ -54,10 +56,13 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
   };
 
   useEffect(() => {
-    // Handle hardware back: on TV we want back to go to home screen of the app
+    // Handle hardware back: call onBack if provided and prevent default only when we handled it.
     const onHardwareBack = () => {
-      try { onBack && onBack(); } catch (e) {}
-      return true; // prevent default (do not exit app)
+      if (onBack) {
+        try { onBack(); } catch (e) {}
+        return true; // we handled it
+      }
+      return false; // let system handle default (allows exiting player on TV if no onBack)
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
     return () => {
@@ -120,7 +125,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 
       <Video
         ref={videoRef}
-        style={styles.video}
+        style={isLandscape ? styles.videoLandscape : styles.video}
         source={{ uri: streamUrl }}
         useNativeControls={true}
         resizeMode={'cover'}
@@ -151,6 +156,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
+  videoLandscape: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#000' },
   controlsOverlay: { position: 'absolute', bottom: 28, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   controlButton: { paddingVertical: 10, paddingHorizontal: 22, borderRadius: 8, marginHorizontal: 8, minWidth: 140, alignItems: 'center' },
   controlText: { color: '#fff', fontWeight: '700', textAlign: 'center' },
