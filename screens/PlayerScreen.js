@@ -24,8 +24,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
           await videoRef.current.loadAsync({ uri: streamUrl }, { shouldPlay: true, isLooping: false });
           // start playback
           try { await videoRef.current.playAsync(); } catch (e) {}
-          // try to present fullscreen if available (native) on mobile only
-          try { if (!isTV && videoRef.current.presentFullscreenPlayer) await videoRef.current.presentFullscreenPlayer(); } catch (e) {}
+          // do NOT call presentFullscreenPlayer here - it can cause issues in Expo Go/dev clients and some TVs
         }
       } catch (e) {
         console.log('Error loading stream in expo-av Video:', e);
@@ -121,19 +120,9 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
     // (we don't import AppState here to avoid changes if not previously used)
   }, [isTV]);
 
-  // Determine video style based on orientation and natural size so portrait doesn't crop landscape streams
-  let videoStyleComputed;
-  if (isLandscape) {
-    videoStyleComputed = styles.videoLandscape;
-  } else {
-    if (videoNatural && videoNatural.width > videoNatural.height) {
-      const ar = videoNatural.width / (videoNatural.height || 1);
-      const desiredHeight = Math.min(winH * 0.95, winW / ar);
-      videoStyleComputed = { width: winW, height: desiredHeight, alignSelf: 'center', backgroundColor: '#000' };
-    } else {
-      videoStyleComputed = styles.video;
-    }
-  }
+  // Determine video style: use the actual window size to avoid scaling artifacts
+  // and let resizeMode handle fitting the content. This prevents weird 200% zoom.
+  const videoStyleComputed = { width: winW, height: winH, backgroundColor: '#000' };
 
   // Render: use native controls only; fullscreen by style and attempted native fullscreen call
   const VideoComponent = Video || AvVideo;
@@ -148,7 +137,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
         style={videoStyleComputed}
         source={{ uri: streamUrl }}
         useNativeControls={true}
-        resizeMode={(!isLandscape && videoNatural && (videoNatural.width > videoNatural.height)) ? 'contain' : 'cover'}
+        resizeMode={(!isLandscape && videoNatural && (videoNatural.width > videoNatural.height)) ? 'contain' : (isLandscape ? 'cover' : 'contain')}
         shouldPlay
         onError={(e) => {
           console.log('Video onError', e);
