@@ -136,6 +136,8 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
   }
 
   // Render: use native controls only; fullscreen by style and attempted native fullscreen call
+  const VideoComponent = Video || AvVideo;
+
   return (
     <View style={[styles.container, { backgroundColor: bgColor }] }>
       <StatusBar hidden />
