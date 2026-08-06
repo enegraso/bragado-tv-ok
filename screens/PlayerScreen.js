@@ -12,6 +12,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
   const tvHandlerRef = useRef(null);
   const { width: winW, height: winH } = useWindowDimensions();
   const isLandscape = winW > winH;
+  const [videoNatural, setVideoNatural] = useState(null);
 
   useEffect(() => {
     setError(null);
@@ -118,6 +119,20 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
     // (we don't import AppState here to avoid changes if not previously used)
   }, [isTV]);
 
+  // Determine video style based on orientation and natural size so portrait doesn't crop landscape streams
+  let videoStyleComputed;
+  if (isLandscape) {
+    videoStyleComputed = styles.videoLandscape;
+  } else {
+    if (videoNatural && videoNatural.width > videoNatural.height) {
+      const ar = videoNatural.width / (videoNatural.height || 1);
+      const desiredHeight = Math.min(winH * 0.95, winW / ar);
+      videoStyleComputed = { width: winW, height: desiredHeight, alignSelf: 'center', backgroundColor: '#000' };
+    } else {
+      videoStyleComputed = styles.video;
+    }
+  }
+
   // Render: use native controls only; fullscreen by style and attempted native fullscreen call
   return (
     <View style={[styles.container, { backgroundColor: bgColor }] }>
@@ -125,16 +140,16 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 
       <Video
         ref={videoRef}
-        style={isLandscape ? styles.videoLandscape : styles.video}
+        style={videoStyleComputed}
         source={{ uri: streamUrl }}
         useNativeControls={true}
-        resizeMode={'cover'}
+        resizeMode={(!isLandscape && videoNatural && (videoNatural.width > videoNatural.height)) ? 'contain' : 'cover'}
         shouldPlay
         onError={(e) => {
           console.log('Video onError', e);
           setError(e?.nativeEvent?.error || JSON.stringify(e));
         }}
-        onPlaybackStatusUpdate={(s) => setStatus(s)}
+        onPlaybackStatusUpdate={(s) => { setStatus(s); if (s && s.naturalSize && (!videoNatural || videoNatural.width !== s.naturalSize.width || videoNatural.height !== s.naturalSize.height)) { setVideoNatural(s.naturalSize); } }}
       />
 
       {error ? (
@@ -157,6 +172,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
   videoLandscape: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#000' },
+  videoPortraitContain: { alignSelf: 'center', backgroundColor: '#000' },
   controlsOverlay: { position: 'absolute', bottom: 28, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   controlButton: { paddingVertical: 10, paddingHorizontal: 22, borderRadius: 8, marginHorizontal: 8, minWidth: 140, alignItems: 'center' },
   controlText: { color: '#fff', fontWeight: '700', textAlign: 'center' },
