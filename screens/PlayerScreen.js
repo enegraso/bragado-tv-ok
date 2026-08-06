@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform, TVEventHandler, useWindowDimensions } from 'react-native';
-import { Video } from 'expo-video';
+import Video from 'expo-video';
 
 export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.1)', textColor = '#fff' }) {
   const videoRef = useRef(null);
