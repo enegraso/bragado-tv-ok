@@ -143,7 +143,7 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
       <StatusBar hidden />
 
       {/** Use expo-video if available, otherwise fallback to expo-av's Video component */}
-      <((Video || AvVideo))
+      <VideoComponent
         ref={videoRef}
         style={videoStyleComputed}
         source={{ uri: streamUrl }}
