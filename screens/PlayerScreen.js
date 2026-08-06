@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform, TVEventHandler, useWindowDimensions } from 'react-native';
 import Video from 'expo-video';
+// fallback to expo-av if expo-video native module isn't available (Expo Go/dev-client differences)
+import { Video as AvVideo } from 'expo-av';
 
 export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.1)', textColor = '#fff' }) {
   const videoRef = useRef(null);
@@ -138,7 +140,8 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
     <View style={[styles.container, { backgroundColor: bgColor }] }>
       <StatusBar hidden />
 
-      <Video
+      {/** Use expo-video if available, otherwise fallback to expo-av's Video component */}
+      <((Video || AvVideo))
         ref={videoRef}
         style={videoStyleComputed}
         source={{ uri: streamUrl }}
