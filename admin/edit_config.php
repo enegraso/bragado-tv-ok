@@ -85,6 +85,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'boton_border_width' => $boton_border_width
     ];
 
+    // Handle file upload if provided
+    if (!empty($_FILES['logo_file']) && $_FILES['logo_file']['error'] === UPLOAD_ERR_OK) {
+        $f = $_FILES['logo_file'];
+        // basic validation: image mime types and reasonable size (8MB)
+        $allowed = ['image/png','image/jpeg','image/jpg','image/gif','image/webp'];
+        if ($f['size'] > 8 * 1024 * 1024) {
+            $message = 'Archivo demasiado grande (máx 8MB)';
+        } else {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $f['tmp_name']);
+            finfo_close($finfo);
+            if (!in_array($mime, $allowed)) {
+                $message = 'Tipo de archivo no permitido';
+            } else {
+                $assets_dir = realpath(__DIR__ . '/../assets') ?: (__DIR__ . '/../assets');
+                if (!file_exists($assets_dir)) {
+                    @mkdir($assets_dir, 0755, true);
+                }
+                // sanitize filename
+                $ext = pathinfo($f['name'], PATHINFO_EXTENSION);
+                $base = pathinfo($f['name'], PATHINFO_FILENAME);
+                $base = preg_replace('/[^a-zA-Z0-9_-]/','_', $base);
+                $filename = time() . '_' . $base . '.' . $ext;
+                $dest = rtrim($assets_dir, '/\\') . DIRECTORY_SEPARATOR . $filename;
+                if (move_uploaded_file($f['tmp_name'], $dest)) {
+                    // build public URL based on current host
+                    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                    $host = $_SERVER['HTTP_HOST'] ?? '';
+                    $logo_url = $scheme . '://' . $host . '/assets/' . $filename;
+                    $logo = $logo_url;
+                    $message = 'Archivo subido correctamente';
+                } else {
+                    $message = 'Error al mover el archivo subido';
+                }
+            }
+        }
+    }
+
     $ok = write_config($CONFIG_FILE, $logo, $stream, $extras);
     $message = $ok ? 'Guardado correctamente' : 'Error al guardar';
 }
@@ -116,7 +154,7 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
   <div class="container">
     <h1>Edit config.txt</h1>
     <?php if($message):?><div class="hint"><strong><?php echo htmlspecialchars($message); ?></strong></div><?php endif; ?>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
     <!-- Authentication handled via admin/index.php session -->
 
       <?php if (!empty($logo)): ?>
@@ -132,6 +170,14 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
       <div class="form-row">
         <label>Logo URL</label>
         <div class="control"><input id="logo_text" type="text" name="logo" value="<?php echo htmlspecialchars($logo); ?>" placeholder="https://.../logo.png"/></div>
+      </div>
+
+      <div class="form-row">
+        <label>Upload Logo (optional)</label>
+        <div class="control">
+          <input type="file" name="logo_file" accept="image/*" />
+          <div class="hint">Si subís un archivo se guardará en /assets y la URL se escribirá en Logo URL y en config.txt</div>
+        </div>
       </div>
 
       <div class="form-row">
