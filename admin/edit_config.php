@@ -175,8 +175,11 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
       <div class="form-row">
         <label>Upload Logo (optional)</label>
         <div class="control">
-          <input type="file" name="logo_file" accept="image/*" />
+          <input id="logo_file_input" type="file" name="logo_file" accept="image/*" />
           <div class="hint">Si subís un archivo se guardará en /assets y la URL se escribirá en Logo URL y en config.txt</div>
+          <div id="upload_preview" style="margin-top:8px;display:none">
+            <img id="upload_preview_img" src="" style="max-width:120px;max-height:80px;border:1px solid #ddd;padding:4px;background:#fff" />
+          </div>
         </div>
       </div>
 
@@ -190,6 +193,7 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
         <div class="control"><input type="text" id="slogan_text" name="slogan" value="<?php echo htmlspecialchars($extras['slogan'] ?? 'Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.'); ?>" placeholder="Texto corto para slogan"/></div>
       </div>
 
+
       <div class="form-row">
         <label>Fondo</label>
         <div class="control">
@@ -200,8 +204,11 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
         </div>
       </div>
 
+      <!-- moved Color Letras here as requested -->
+      <!-- removed duplicate Color letras block (moved above) -->
+
       <div class="form-row">
-        <label>Botón fondo</label>
+        <label>Botón fondo (color y transparencia)</label>
         <div class="control">
           <?php list($btn_hex,$btn_alpha) = parse_rgba($extras['botonfondo'] ?? 'rgba(255,255,255,0.08)'); ?>
           <input type="color" id="boton_color" value="<?php echo htmlspecialchars($btn_hex); ?>" />
@@ -246,6 +253,17 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
     </form>
 
     <p class="hint">Al subir este archivo a la raíz donde está config.txt, el formulario permitirá editar y sobrescribir config.txt.</p>
+
+    <!-- Upload modal -->
+    <div id="upload_modal" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:9999">
+      <div style="background:#fff;padding:18px;border-radius:8px;max-width:420px;margin:0 auto;text-align:center">
+        <div style="font-weight:700;margin-bottom:8px">Subiendo imagen...</div>
+        <div style="height:12px;background:#eee;border-radius:6px;overflow:hidden;margin-bottom:8px">
+          <div id="upload_progress_bar" style="width:0%;height:100%;background:#0b74de"></div>
+        </div>
+        <div id="upload_progress_text" style="font-size:13px;color:#333">0%</div>
+      </div>
+    </div>
 
     <script>
     function setVal(idInput, idColor, idText, idSwatch) {
@@ -308,6 +326,50 @@ list($logo,$stream,$extras) = read_config($CONFIG_FILE);
           if (!v) { logoPreview.style.display = 'none'; logoPreview.src = ''; return; }
           logoPreview.src = v;
           logoPreview.style.display = 'block';
+        });
+      }
+
+      // handle AJAX upload for logo file with progress modal
+      const logoFileInput = document.getElementById('logo_file_input');
+      const uploadModal = document.getElementById('upload_modal');
+      const progressBar = document.getElementById('upload_progress_bar');
+      const progressText = document.getElementById('upload_progress_text');
+      const uploadPreview = document.getElementById('upload_preview');
+      const uploadPreviewImg = document.getElementById('upload_preview_img');
+      if (logoFileInput) {
+        logoFileInput.addEventListener('change', () => {
+          const f = logoFileInput.files && logoFileInput.files[0];
+          if (!f) return;
+          const fd = new FormData(); fd.append('logo_file', f);
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', 'upload_logo.php', true);
+          xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              progressBar.style.width = pct + '%';
+              progressText.textContent = pct + '%';
+              uploadModal.style.display = 'flex';
+            }
+          };
+          xhr.onload = function() {
+            uploadModal.style.display = 'none';
+            if (xhr.status === 200) {
+              try {
+                const j = JSON.parse(xhr.responseText);
+                if (j.ok && j.url) {
+                  // set URL into input and preview
+                  if (logoInput) { logoInput.value = j.url; logoInput.dispatchEvent(new Event('input')); }
+                  if (uploadPreviewImg) { uploadPreviewImg.src = j.url; uploadPreview.style.display = 'block'; }
+                } else {
+                  alert('Error subiendo imagen: ' + (j.error || 'desconocido'));
+                }
+              } catch (e) { alert('Respuesta inválida del servidor'); }
+            } else {
+              alert('Error al subir imagen. Código: ' + xhr.status);
+            }
+          };
+          xhr.onerror = function() { uploadModal.style.display = 'none'; alert('Error de red al subir'); };
+          xhr.send(fd);
         });
       }
 
