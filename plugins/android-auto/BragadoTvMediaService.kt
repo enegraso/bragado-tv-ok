@@ -4,6 +4,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
@@ -99,6 +100,41 @@ class BragadoTvMediaService : MediaLibraryService() {
         if (parentId == ROOT_ID) ImmutableList.of(liveItem())
         else ImmutableList.of()
       return Futures.immediateFuture(LibraryResult.ofItemList(children, params))
+    }
+
+    @OptIn(UnstableApi::class)
+    override fun onGetItem(
+      session: MediaLibrarySession,
+      browser: MediaSession.ControllerInfo,
+      mediaId: String
+    ): ListenableFuture<LibraryResult<MediaItem>> {
+      // The car resolves the tapped selection by id; we expose a single live
+      // stream, so return it (with its URI) for any requested id.
+      return Futures.immediateFuture(LibraryResult.ofItem(liveItem(), null))
+    }
+
+    @OptIn(UnstableApi::class)
+    override fun onSetMediaItems(
+      mediaSession: MediaSession,
+      browser: MediaSession.ControllerInfo,
+      mediaItems: List<MediaItem>,
+      startIndex: Int,
+      startPositionMs: Long
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+      // Single live channel: always return our stream with its URI. The controller
+      // may strip the URI and send only the mediaId, so we resolve it here.
+      return Futures.immediateFuture(
+        MediaSession.MediaItemsWithStartPosition(listOf(liveItem()), 0, 0L)
+      )
+    }
+
+    override fun onAddMediaItems(
+      mediaSession: MediaSession,
+      controller: MediaSession.ControllerInfo,
+      mediaItems: List<MediaItem>
+    ): ListenableFuture<List<MediaItem>> {
+      // Ensure added items carry our stream URI.
+      return Futures.immediateFuture(listOf(liveItem()))
     }
 
     private fun liveItem(): MediaItem =
