@@ -17,9 +17,10 @@ import com.google.common.util.concurrent.ListenableFuture
 
 private const val ROOT_ID = "bragado-tv-root"
 private const val LIVE_ID = "bragado-tv-en-vivo"
-// Keep in sync with DEFAULT_STREAM_URL in App.js. A future iteration can fetch
-// the remote config (config.txt) here, or have JS push the resolved URL.
-private const val STREAM_URL = "https://srv1053170.hstgr.cloud/hls/bragadotv.m3u8"
+// Current stream URL from the remote config (config.txt line 2). The app resolves
+// this at runtime from tvbragado.com.ar/admin/config.txt; if it changes server-side,
+// update this value (or fetch the config in a future iteration to avoid hardcoding).
+private const val STREAM_URL = "https://vivo.solumedia.com:19360/bragadato/bragadato.m3u8"
 
 /**
  * Android Auto media app service for Bragado TV.
