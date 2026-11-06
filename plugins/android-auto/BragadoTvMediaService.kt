@@ -1,5 +1,6 @@
 package com.bragado.tvok
 
+import android.net.Uri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -25,7 +26,10 @@ private const val LIVE_ID = "bragado-tv-en-vivo"
 // Remote config: line 1 = logo URL, line 2 = stream URL (same as services/remoteConfig.js).
 private const val CONFIG_URL = "https://tvbragado.com.ar/admin/config.txt"
 // Used only when the remote config cannot be read.
+private const val FALLBACK_LOGO_URL = "https://tvbragado.com.ar/assets/bragadologo.png"
 private const val FALLBACK_STREAM_URL = "https://vivo.solumedia.com:19360/bragadato/bragadato.m3u8"
+
+private data class RemoteConfig(val logoUrl: String?, val streamUrl: String)
 
 /**
  * Android Auto media app service for Bragado TV.
@@ -34,8 +38,8 @@ private const val FALLBACK_STREAM_URL = "https://vivo.solumedia.com:19360/bragad
  * (radio) app in Android Auto. There is deliberately no video surface here:
  * Android Auto media apps are audio-only.
  *
- * The stream URL is resolved from the remote config on every service start, so
- * changing it server-side requires no rebuild or app update.
+ * The logo and stream URL are resolved from the remote config on every service
+ * start, so changing them server-side requires no rebuild or app update.
  */
 class BragadoTvMediaService : MediaLibraryService() {
 
@@ -44,9 +48,9 @@ class BragadoTvMediaService : MediaLibraryService() {
   override fun onCreate() {
     super.onCreate()
 
-    // Resolve the current stream URL before building the session so the browse
-    // tree always serves the live URL (bounded wait; falls back on failure).
-    val streamUrl = resolveStreamUrl()
+    // Resolve the current logo + stream URL before building the session so the
+    // browse tree always serves live values (bounded wait; falls back on failure).
+    val config = resolveConfig()
 
     val player = ExoPlayer.Builder(this).build()
     player.setAudioAttributes(
@@ -65,7 +69,11 @@ class BragadoTvMediaService : MediaLibraryService() {
     player.playWhenReady = true
 
     mediaLibrarySession =
-      MediaLibrarySession.Builder(this, player, BragadoTvCallback(streamUrl)).build()
+      MediaLibrarySession.Builder(
+        this,
+        player,
+        BragadoTvCallback(config.logoUrl, config.streamUrl)
+      ).build()
   }
 
   override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
@@ -80,49 +88,57 @@ class BragadoTvMediaService : MediaLibraryService() {
     super.onDestroy()
   }
 
-  private fun resolveStreamUrl(): String {
+  private fun resolveConfig(): RemoteConfig {
     val executor = Executors.newSingleThreadExecutor()
     return try {
-      executor.submit(Callable { fetchStreamUrlFromRemoteConfig() })
+      executor.submit(Callable { fetchRemoteConfig() })
         .get(3, TimeUnit.SECONDS)
     } catch (e: Exception) {
-      FALLBACK_STREAM_URL
+      RemoteConfig(FALLBACK_LOGO_URL, FALLBACK_STREAM_URL)
     } finally {
       executor.shutdownNow()
     }
   }
 
-  private fun fetchStreamUrlFromRemoteConfig(): String {
+  private fun fetchRemoteConfig(): RemoteConfig {
     val conn = URL(CONFIG_URL).openConnection() as HttpURLConnection
     conn.connectTimeout = 3000
     conn.readTimeout = 3000
     return try {
       conn.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
-        val stream = reader.readLines().getOrNull(1)?.trim()
-        if (stream != null && stream.startsWith("http")) stream else FALLBACK_STREAM_URL
+        val lines = reader.readLines()
+        val logo = lines.getOrNull(0)?.trim()?.takeIf { it.startsWith("http") }
+        val stream = lines.getOrNull(1)?.trim()?.takeIf { it.startsWith("http") }
+        if (stream != null) RemoteConfig(logo, stream)
+        else RemoteConfig(FALLBACK_LOGO_URL, FALLBACK_STREAM_URL)
       }
     } finally {
       conn.disconnect()
     }
   }
 
-  private class BragadoTvCallback(private val streamUrl: String) : MediaLibrarySession.Callback {
+  private class BragadoTvCallback(
+    private val logoUrl: String?,
+    private val streamUrl: String
+  ) : MediaLibrarySession.Callback {
 
     override fun onGetLibraryRoot(
       session: MediaLibrarySession,
       browser: MediaSession.ControllerInfo,
       params: LibraryParams?
     ): ListenableFuture<LibraryResult<MediaItem>> {
+      val rootMetadata =
+        MediaMetadata.Builder()
+          .setTitle("Bragado TV")
+          .setIsBrowsable(true)
+          .setIsPlayable(false)
+      if (logoUrl != null) {
+        rootMetadata.setArtworkUri(Uri.parse(logoUrl))
+      }
       val root =
         MediaItem.Builder()
           .setMediaId(ROOT_ID)
-          .setMediaMetadata(
-            MediaMetadata.Builder()
-              .setTitle("Bragado TV")
-              .setIsBrowsable(true)
-              .setIsPlayable(false)
-              .build()
-          )
+          .setMediaMetadata(rootMetadata.build())
           .build()
       return Futures.immediateFuture(LibraryResult.ofItem(root, params))
     }
@@ -176,18 +192,21 @@ class BragadoTvMediaService : MediaLibraryService() {
       return Futures.immediateFuture(listOf(liveItem()))
     }
 
-    private fun liveItem(): MediaItem =
-      MediaItem.Builder()
+    private fun liveItem(): MediaItem {
+      val metadata =
+        MediaMetadata.Builder()
+          .setTitle("En vivo")
+          .setArtist("Bragado TV")
+          .setIsBrowsable(false)
+          .setIsPlayable(true)
+      if (logoUrl != null) {
+        metadata.setArtworkUri(Uri.parse(logoUrl))
+      }
+      return MediaItem.Builder()
         .setMediaId(LIVE_ID)
         .setUri(streamUrl)
-        .setMediaMetadata(
-          MediaMetadata.Builder()
-            .setTitle("En vivo")
-            .setArtist("Bragado TV")
-            .setIsBrowsable(false)
-            .setIsPlayable(true)
-            .build()
-        )
+        .setMediaMetadata(metadata.build())
         .build()
+    }
   }
 }
