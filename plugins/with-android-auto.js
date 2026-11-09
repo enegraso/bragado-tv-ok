@@ -41,15 +41,6 @@ module.exports = function withAndroidAuto(config) {
     ensurePermission('android.permission.FOREGROUND_SERVICE');
     ensurePermission('android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK');
 
-    // Declare the automotive feature as optional so the same artifact still
-    // installs on phones/TVs while remaining eligible for car form factors.
-    const features = manifest['uses-feature'] || (manifest['uses-feature'] = []);
-    if (!features.some((f) => f.$?.['android:name'] === 'android.hardware.type.automotive')) {
-      features.push({
-        $: { 'android:name': 'android.hardware.type.automotive', 'android:required': 'false' },
-      });
-    }
-
     const app = manifest.application && manifest.application[0];
     if (!app) return cfg;
 
