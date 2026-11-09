@@ -20,6 +20,7 @@ expo-env.d.ts
 
 # Firebase / APNs credentials
 google-services.json
+com-bragado-tvok-firebase-adminsdk-*.json
 
 # admin folder (uploaded via FTP to external server)
 # We commit PHP admin scripts but keep credentials and data files ignored
