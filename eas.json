@@ -14,15 +14,30 @@
     },
     "production": {
       "autoIncrement": true,
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "SKIP_REQUEST_INSTALL_PACKAGES": "true"
+      }
     },
     "production_tv": {
       "extends": "production",
       "environment": "production",
       "env": {
-        "EXPO_TV": "1"
+        "EXPO_TV": "1",
+        "SKIP_REQUEST_INSTALL_PACKAGES": "true"
       },
       "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6747498493"
+      }
     }
   },
   "cli": {

@@ -35,9 +35,35 @@ export async function getConfig() {
       slogan: values.slogan || null,
       boton_border: values.boton_border || null,
       boton_border_width: values.boton_border_width || null,
+      whatsapp: values.whatsapp || null,
+      facebook: values.facebook || null,
+      instagram: values.instagram || null,
+      twitter: values.twitter || null,
+      tiktok: values.tiktok || null,
+      youtube: values.youtube || null,
+      mail: values.mail || null,
+      logo2: values.logo2 || null,
+      web: values.web || null,
+      slogan_owner: values.slogan_owner || null,
     };
   } catch (e) {
     console.log('remoteConfig: failed to fetch', e);
-    return { logo: null, stream: null, fondo: null, botonfondo: null, colorletras: null };
+    return {
+      logo: null,
+      stream: null,
+      fondo: null,
+      botonfondo: null,
+      colorletras: null,
+      whatsapp: null,
+      facebook: null,
+      instagram: null,
+      twitter: null,
+      tiktok: null,
+      youtube: null,
+      mail: null,
+      logo2: null,
+      web: null,
+      slogan_owner: null,
+    };
   }
 }

@@ -1,0 +1,5 @@
+https://tvbragado.com.ar/assets/bragadologo.png
+https://vivo.solumedia.com:19360/bragadato/bragadato.m3u8
+fondo: #050505
+botonfondo: rgba(133,141,249,0.42)
+colorletras: #f3eded

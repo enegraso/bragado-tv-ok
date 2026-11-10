@@ -38,11 +38,39 @@ function parse_rgba($color)
 
 function read_config($path)
 {
-  if (!file_exists($path)) return ['', '', ['fondo' => '#000000', 'botonfondo' => 'rgba(255,255,255,0.08)', 'colorletras' => '#ffffff']];
+  if (!file_exists($path)) return ['', '', [
+    'fondo' => '#000000',
+    'botonfondo' => 'rgba(255,255,255,0.08)',
+    'colorletras' => '#ffffff',
+    'whatsapp' => '',
+    'facebook' => '',
+    'instagram' => '',
+    'twitter' => '',
+    'tiktok' => '',
+    'youtube' => '',
+    'mail' => '',
+    'web' => '',
+    'logo2' => '',
+    'slogan_owner' => ''
+  ]];
   $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
   $logo = $lines[0] ?? '';
   $stream = $lines[1] ?? '';
-  $extras = ['fondo' => '#000000', 'botonfondo' => 'rgba(255,255,255,0.08)', 'colorletras' => '#ffffff'];
+  $extras = [
+    'fondo' => '#000000',
+    'botonfondo' => 'rgba(255,255,255,0.08)',
+    'colorletras' => '#ffffff',
+    'whatsapp' => '',
+    'facebook' => '',
+    'instagram' => '',
+    'twitter' => '',
+    'tiktok' => '',
+    'youtube' => '',
+    'mail' => '',
+    'web' => '',
+    'logo2' => '',
+    'slogan_owner' => ''
+  ];
   for ($i = 2; $i < count($lines); $i++) {
     $p = explode(':', $lines[$i], 2);
     if (count($p) == 2) $extras[strtolower(trim($p[0]))] = trim($p[1]);
@@ -55,7 +83,24 @@ function write_config($path, $logo, $stream, $extras)
   $lines = [];
   $lines[] = trim($logo);
   $lines[] = trim($stream);
-  foreach (['fondo', 'botonfondo', 'colorletras', 'slogan', 'boton_border', 'boton_border_width'] as $k) {
+  foreach ([
+    'fondo',
+    'botonfondo',
+    'colorletras',
+    'slogan',
+    'boton_border',
+    'boton_border_width',
+    'whatsapp',
+    'facebook',
+    'instagram',
+    'twitter',
+    'tiktok',
+    'youtube',
+    'mail',
+    'web',
+    'logo2',
+    'slogan_owner'
+  ] as $k) {
     if (isset($extras[$k])) $lines[] = "$k: " . trim($extras[$k]);
   }
   return file_put_contents($path, implode("\n", $lines) . "\n") !== false;
@@ -72,6 +117,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $slogan = $_POST['slogan'] ?? '';
   $boton_border = $_POST['boton_border'] ?? '';
   $boton_border_width = $_POST['boton_border_width'] ?? '';
+  $whatsapp = $_POST['whatsapp'] ?? '';
+  $facebook = $_POST['facebook'] ?? '';
+  $instagram = $_POST['instagram'] ?? '';
+  $twitter = $_POST['twitter'] ?? '';
+  $tiktok = $_POST['tiktok'] ?? '';
+  $youtube = $_POST['youtube'] ?? '';
+  $mail = $_POST['mail'] ?? '';
+  $web = $_POST['web'] ?? '';
+  $logo2 = $_POST['logo2'] ?? '';
+  $slogan_owner = $_POST['slogan_owner'] ?? '';
 
   $extras = [
     'fondo' => $fondo,
@@ -79,7 +134,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     'colorletras' => $colorletras,
     'slogan' => $slogan,
     'boton_border' => $boton_border,
-    'boton_border_width' => $boton_border_width
+    'boton_border_width' => $boton_border_width,
+    'whatsapp' => $whatsapp,
+    'facebook' => $facebook,
+    'instagram' => $instagram,
+    'twitter' => $twitter,
+    'tiktok' => $tiktok,
+    'youtube' => $youtube,
+    'mail' => $mail,
+    'web' => $web,
+    'logo2' => $logo2,
+    'slogan_owner' => $slogan_owner
   ];
 
   if (!empty($_FILES['logo_file']) && $_FILES['logo_file']['error'] === UPLOAD_ERR_OK) {
@@ -119,8 +184,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  if (!$message) {
+  // Logo 2 upload (owner/company logo)
+  if (!empty($_FILES['logo2_file']) && $_FILES['logo2_file']['error'] === UPLOAD_ERR_OK) {
+    $f = $_FILES['logo2_file'];
+    $allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if ($f['size'] > 8 * 1024 * 1024) {
+      $message = 'Archivo demasiado grande (máx 8MB)';
+      $messageType = 'error';
+    } else {
+      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+      $mime = finfo_file($finfo, $f['tmp_name']);
+      finfo_close($finfo);
+      if (!in_array($mime, $allowed)) {
+        $message = 'Tipo de archivo no permitido';
+        $messageType = 'error';
+      } else {
+        $assets_dir = realpath(__DIR__ . '/../assets') ?: (__DIR__ . '/../assets');
+        if (!file_exists($assets_dir)) {
+          @mkdir($assets_dir, 0755, true);
+        }
+        $ext = pathinfo($f['name'], PATHINFO_EXTENSION);
+        $base = pathinfo($f['name'], PATHINFO_FILENAME);
+        $base = preg_replace('/[^a-zA-Z0-9_-]/', '_', $base);
+        $filename = time() . '_owner_' . $base . '.' . $ext;
+        $dest = rtrim($assets_dir, '/\\') . DIRECTORY_SEPARATOR . $filename;
+        if (move_uploaded_file($f['tmp_name'], $dest)) {
+          $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+          $host = $_SERVER['HTTP_HOST'] ?? '';
+          $logo2_url = $scheme . '://' . $host . '/assets/' . $filename;
+          $logo2 = $logo2_url;
+          $message = 'Archivo subido correctamente';
+        } else {
+          $message = 'Error al mover el archivo subido';
+          $messageType = 'error';
+        }
+      }
+    }
+  }
+
+  // If there was no fatal error from file uploads, persist the config.
+  // We allow saving even if $message contains a non-error informational message
+  // (e.g., 'Archivo subido correctamente') so the uploaded URLs are stored.
+  if ($messageType !== 'error') {
     $ok = write_config($CONFIG_FILE, $logo, $stream, $extras);
+    // log the write attempt for debugging
+    $dbgfile = __DIR__ . '/upload_debug.log';
+    @file_put_contents($dbgfile, date('Y-m-d H:i:s') . " | WRITE_CONFIG ok=" . ($ok ? '1' : '0') . " logo=" . substr($logo, -80) . " logo2=" . substr($extras['logo2'] ?? '', -80) . " web=" . substr($extras['web'] ?? '', -80) . "\n", FILE_APPEND | LOCK_EX);
     $message = $ok ? 'Guardado correctamente' : 'Error al guardar';
     $messageType = $ok ? 'success' : 'error';
   }
@@ -163,6 +272,8 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
     input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: 2px solid #1e293b; }
     .upload-zone { border: 2px dashed #334155; transition: border-color 0.2s, background 0.2s; }
     .upload-zone:hover, .upload-zone.dragover { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
+    .owner-box { width: 160px; height: 80px; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.02); }
+    .owner-box img { max-width: 150px; max-height: 70px; object-fit: contain; }
     .toast { animation: slideIn 0.3s ease-out; }
     @keyframes slideIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   </style>
@@ -184,6 +295,8 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
       </a>
     </div>
   </header>
+
+  <?php if (!empty($_SESSION['admin'])) include __DIR__ . '/stream_status.php'; ?>
 
   <main class="max-w-3xl mx-auto px-4 py-6 pb-24">
 
@@ -209,6 +322,7 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
           </div>
           <h2 class="text-base font-semibold text-slate-200">Logo & Stream</h2>
         </div>
+        <!-- (removed duplicate preview block) -->
 
         <!-- Logo Preview -->
         <div class="flex justify-center mb-5">
@@ -218,6 +332,11 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
           <?php else: ?>
             <img id="logo_preview" src="" alt="logo preview" class="h-20 rounded-xl bg-white/5 p-2 object-contain" style="display:none"/>
           <?php endif; ?>
+        </div>
+
+        <!-- Owner logo box (hidden by default; shown only when user edits owner logo or slogan) -->
+        <div class="flex justify-center mb-4">
+          <div class="owner-box" id="owner_box" style="display:none"></div>
         </div>
 
         <!-- Logo URL -->
@@ -242,7 +361,16 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
           </div>
         </div>
 
-        <!-- Stream URL -->
+        <!-- Slogan -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-slate-400 mb-1.5">Slogan</label>
+          <input id="slogan_text" type="text" name="slogan"
+                 value="<?php echo htmlspecialchars($extras['slogan'] ?? 'Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.'); ?>"
+                 placeholder="Texto corto para slogan"
+                 class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+        </div>
+
+        <!-- Stream URL (HLS) -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-slate-400 mb-1.5">Stream URL (HLS)</label>
           <input type="text" name="stream" value="<?php echo htmlspecialchars($stream); ?>"
@@ -250,13 +378,102 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
                  class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
         </div>
 
-        <!-- Slogan -->
-        <div>
-          <label class="block text-sm font-medium text-slate-400 mb-1.5">Slogan</label>
-          <input id="slogan_text" type="text" name="slogan"
-                 value="<?php echo htmlspecialchars($extras['slogan'] ?? 'Canal de streaming en vivo desde Bragado. Programación local, noticias y entrevistas.'); ?>"
-                 placeholder="Texto corto para slogan"
+        <!-- Owner Logo (Logo 2) and Slogan Propietario -->
+        <div class="mb-4">
+          <!-- Centered preview above the Logo Propietario input -->
+          <div id="upload_preview2" class="mb-4 flex justify-center" style="display:<?php echo !empty($extras['logo2']) ? 'flex' : 'none'; ?>;">
+            <img id="logo2_preview_img" src="<?php echo htmlspecialchars($extras['logo2'] ?? ''); ?>" class="h-20 rounded-lg border border-white/10 bg-white/5 p-1 object-contain"/>
+          </div>
+          <label class="block text-sm font-medium text-slate-400 mb-1.5">Logo Propietario (Logo 2) URL</label>
+          <input id="logo2_text" type="text" name="logo2" value="<?php echo htmlspecialchars($extras['logo2'] ?? ''); ?>"
+                 placeholder="https://.../logo-propietario.png"
                  class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          <div class="upload-zone rounded-xl p-6 text-center cursor-pointer mt-3" id="upload_zone2">
+            <input id="logo2_file_input" type="file" name="logo2_file" accept="image/*" class="hidden"/>
+            <svg class="w-8 h-8 mx-auto text-slate-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <p class="text-sm text-slate-400">Arrastrá una imagen o <span class="text-blue-400 font-medium">elegí un archivo</span></p>
+            <p class="text-xs text-slate-500 mt-1">PNG, JPG, GIF, WebP — máx 8MB</p>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-slate-400 mb-1.5">Slogan Propietario</label>
+          <input id="slogan_owner_text" type="text" name="slogan_owner" value="<?php echo htmlspecialchars($extras['slogan_owner'] ?? ''); ?>"
+                 placeholder="Slogan del propietario"
+                 class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+        </div>
+
+        <!-- Slogan field moved above Stream URL -->
+      </div>
+
+      <!-- Card: Redes Sociales -->
+      <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 mb-5">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h.008v.008h-.008V9.75zm0 0h6.75M8.625 14.25a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h.008v.008h-.008v-.008zm0 0h6.75M6 5.25h12A2.25 2.25 0 0120.25 7.5v9A2.25 2.25 0 0118 18.75H6A2.25 2.25 0 013.75 16.5v-9A2.25 2.25 0 016 5.25z"/></svg>
+          </div>
+          <h2 class="text-base font-semibold text-slate-200">Redes Sociales</h2>
+        </div>
+        <p class="text-sm text-slate-500 mb-5">Links visibles en la app (celular). Si vacio, no se muestra el boton.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">WhatsApp (formato: 549XXXXXXXXXX)</label>
+            <input type="text" name="whatsapp" value="<?php echo htmlspecialchars($extras['whatsapp'] ?? ''); ?>"
+                   placeholder="5492342447086"
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">Facebook</label>
+            <input type="text" name="facebook" value="<?php echo htmlspecialchars($extras['facebook'] ?? ''); ?>"
+                   placeholder="https://www.facebook.com/TuPagina"
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">Instagram</label>
+            <input type="text" name="instagram" value="<?php echo htmlspecialchars($extras['instagram'] ?? ''); ?>"
+                   placeholder="https://instagram.com/..."
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">X (Twitter)</label>
+            <input type="text" name="twitter" value="<?php echo htmlspecialchars($extras['twitter'] ?? ''); ?>"
+                   placeholder="https://twitter.com/TuUsuario"
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">TikTok</label>
+            <input type="text" name="tiktok" value="<?php echo htmlspecialchars($extras['tiktok'] ?? ''); ?>"
+                   placeholder="https://tiktok.com/@..."
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">YouTube</label>
+            <input type="text" name="youtube" value="<?php echo htmlspecialchars($extras['youtube'] ?? ''); ?>"
+                   placeholder="https://www.youtube.com/@TuCanal"
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
+            <input type="email" name="mail" value="<?php echo htmlspecialchars($extras['mail'] ?? ''); ?>"
+                   placeholder="info@tvbragado.com.ar"
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1.5">Web Oficial</label>
+            <input type="text" name="web" value="<?php echo htmlspecialchars($extras['web'] ?? ''); ?>"
+                   placeholder="https://bragadotv.com.ar"
+                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition"/>
+          </div>
+
+          <!-- moved Logo Propietario to Logo & Stream card -->
         </div>
       </div>
 
@@ -410,7 +627,72 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
       update();
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('DOMContentLoaded', function() {
+      // Helper: preload an image and call callbacks
+      function preloadImage(src, onload, onerror) {
+        const img = new Image();
+        img.onload = function() { onload && onload(img); };
+        img.onerror = function(e) { onerror && onerror(e); };
+        img.src = src;
+      }
+
+      function setImgWhenReady(el, src) {
+        if (!el) return;
+        // show a tiny loading state (optional)
+        el.style.opacity = '0.6';
+        preloadImage(src, function() {
+          el.src = src;
+          el.style.display = 'block';
+          el.style.opacity = '1';
+        }, function() {
+          console.warn('Failed to load image', src);
+          // keep element hidden on error
+          el.style.display = 'none';
+        });
+      }
+
+      function updateOwnerBox(src) {
+        const box = document.getElementById('owner_box');
+        if (!box) return;
+        // create a fresh image element to avoid stale attributes/styles
+        const img = document.createElement('img');
+        img.alt = 'Logo propietario';
+        img.className = 'h-16 rounded-xl border border-white/10 bg-white/5 p-1 object-contain';
+        // preload then append
+        preloadImage(src, function() {
+          img.src = src;
+          // clear and append
+          box.innerHTML = '';
+          box.appendChild(img);
+          // ensure the box is visible when an image is set
+          box.style.display = 'flex';
+        }, function() {
+          console.warn('Failed to load owner image', src);
+        });
+      }
+
+      // Submit the form via AJAX to persist config changes (removes file inputs before sending)
+      function submitFormAjax(formEl) {
+        if (!formEl) return;
+        try {
+          const fd = new FormData(formEl);
+          // remove file inputs to avoid re-sending files
+          fd.delete('logo_file');
+          fd.delete('logo2_file');
+          return fetch(window.location.pathname + window.location.search, {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+          }).then(resp => {
+            if (!resp.ok) throw new Error('Save failed: ' + resp.status);
+            return resp.text();
+          }).then(text => {
+            console.log('Auto-save response length', text.length);
+            // optionally show a small toast (not implemented UI) or console
+            return true;
+          }).catch(err => { console.warn('Auto-save error', err); return false; });
+        } catch (e) { console.warn('submitFormAjax error', e); return Promise.resolve(false); }
+      }
       setVal('fondo_color', 'fondo_text');
       setVal('texto_color', 'texto_text');
       setVal('boton_border_color', 'boton_border_text');
@@ -442,6 +724,82 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
         });
       }
 
+      // Logo2 upload zone
+      const uploadZone2 = document.getElementById('upload_zone2');
+      const logo2FileInput = document.getElementById('logo2_file_input');
+      const logo2Input = document.getElementById('logo2_text');
+      const logo2Preview = document.getElementById('upload_preview2');
+      const logo2PreviewImg = document.getElementById('logo2_preview_img');
+      if (uploadZone2 && logo2FileInput) {
+        uploadZone2.addEventListener('click', () => logo2FileInput.click());
+        uploadZone2.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone2.classList.add('dragover'); });
+        uploadZone2.addEventListener('dragleave', () => uploadZone2.classList.remove('dragover'));
+        uploadZone2.addEventListener('drop', (e) => {
+          e.preventDefault();
+          uploadZone2.classList.remove('dragover');
+          if (e.dataTransfer.files.length) { logo2FileInput.files = e.dataTransfer.files; logo2FileInput.dispatchEvent(new Event('change')); }
+        });
+      }
+
+      if (logo2Input && logo2PreviewImg) {
+        logo2Input.addEventListener('input', () => {
+          const v = logo2Input.value.trim();
+          if (!v) { logo2Preview.style.display = 'none'; logo2PreviewImg.src = ''; return; }
+          // append cache buster to force fresh fetch
+          const cb = (v.indexOf('?') === -1) ? ('?_=' + Date.now()) : ('&_=' + Date.now());
+          setImgWhenReady(logo2PreviewImg, v + cb);
+          logo2Preview.style.display = 'flex';
+          updateOwnerBox(v + cb);
+        });
+      }
+
+      if (logo2FileInput) {
+        logo2FileInput.addEventListener('change', () => {
+          const f = logo2FileInput.files && logo2FileInput.files[0];
+          if (!f) return;
+          const fd = new FormData();
+          fd.append('logo2_file', f);
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', 'upload_logo.php', true);
+          xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              progressBar.style.width = pct + '%';
+              progressText.textContent = pct + '%';
+              uploadModal.style.display = 'flex';
+            }
+          };
+          xhr.onload = function() {
+            uploadModal.style.display = 'none';
+            console.log('upload_logo2 response:', xhr.status, xhr.responseText);
+            if (xhr.status === 200) {
+              let j = null;
+              try { j = JSON.parse(xhr.responseText); } catch(e) {
+                // try to extract JSON substring in case of stray output
+                const m = xhr.responseText.match(/\{[\s\S]*\}/);
+                if (m) {
+                  try { j = JSON.parse(m[0]); } catch(e2) { j = null; }
+                }
+              }
+               if (j && j.ok && j.url) {
+                 const url = j.url + (j.url.indexOf('?') === -1 ? ('?_=' + Date.now()) : ('&_=' + Date.now()));
+                  if (logo2Input) { logo2Input.value = j.url; logo2Input.dispatchEvent(new Event('input')); }
+                   if (logo2PreviewImg) { setImgWhenReady(logo2PreviewImg, url); logo2Preview.style.display = 'flex'; }
+                  updateOwnerBox(url);
+                  // auto-save the form so the uploaded logo2 is persisted to config.txt
+                  if (typeof submitFormAjax === 'function') {
+                    submitFormAjax(document.querySelector('form')).then(ok => { if (!ok) console.warn('Auto-save did not succeed'); });
+                  }
+               } else {
+                 alert('Error subiendo imagen: ' + ((j && j.error) ? j.error : 'desconocido') + '\nRespuesta: ' + xhr.responseText);
+               }
+            } else { alert('Error al subir imagen. Código: ' + xhr.status + '\nRespuesta: ' + xhr.responseText); }
+          };
+          xhr.onerror = function() { uploadModal.style.display = 'none'; alert('Error de red al subir'); };
+          xhr.send(fd);
+        });
+      }
+
       // AJAX upload with progress
       const uploadModal = document.getElementById('upload_modal');
       const progressBar = document.getElementById('upload_progress_bar');
@@ -467,20 +825,66 @@ $bb_hex = extract_hex($extras['boton_border'] ?? '#ffffff') ?? '#ffffff';
           };
           xhr.onload = function() {
             uploadModal.style.display = 'none';
+            console.log('upload_logo response:', xhr.status, xhr.responseText);
             if (xhr.status === 200) {
-              try {
-                const j = JSON.parse(xhr.responseText);
-                if (j.ok && j.url) {
-                  if (logoInput) { logoInput.value = j.url; logoInput.dispatchEvent(new Event('input')); }
-                  if (uploadPreviewImg) { uploadPreviewImg.src = j.url; uploadPreview.style.display = 'block'; }
-                } else {
-                  alert('Error subiendo imagen: ' + (j.error || 'desconocido'));
+              let j = null;
+              try { j = JSON.parse(xhr.responseText); } catch(e) {
+                const m = xhr.responseText.match(/\{[\s\S]*\}/);
+                if (m) {
+                  try { j = JSON.parse(m[0]); } catch(e2) { j = null; }
                 }
-              } catch (e) { alert('Respuesta inválida del servidor'); }
-            } else { alert('Error al subir imagen. Código: ' + xhr.status); }
+              }
+               if (j && j.ok && j.url) {
+                 const url = j.url + (j.url.indexOf('?') === -1 ? ('?_=' + Date.now()) : ('&_=' + Date.now()));
+                  if (logoInput) { logoInput.value = j.url; logoInput.dispatchEvent(new Event('input')); }
+                  if (uploadPreviewImg) { setImgWhenReady(uploadPreviewImg, url); uploadPreview.style.display = 'block'; }
+                  if (typeof submitFormAjax === 'function') {
+                    submitFormAjax(document.querySelector('form')).then(ok => { if (!ok) console.warn('Auto-save did not succeed'); });
+                  }
+               } else {
+                 alert('Error subiendo imagen: ' + ((j && j.error) ? j.error : 'desconocido') + '\nRespuesta: ' + xhr.responseText);
+               }
+            } else { alert('Error al subir imagen. Código: ' + xhr.status + '\nRespuesta: ' + xhr.responseText); }
           };
           xhr.onerror = function() { uploadModal.style.display = 'none'; alert('Error de red al subir'); };
           xhr.send(fd);
+        });
+      }
+      // After init, ensure owner box shows image if logo2 exists but initial img was not rendered correctly
+      // keep owner box hidden by default; only show when user edits logo2 or slogan_owner
+      const ownerBox = document.getElementById('owner_box');
+      if (ownerBox) {
+        ownerBox.style.display = 'none';
+      }
+
+      // Show owner box only when the user edits logo2 or slogan_owner
+      const sloganOwnerInput = document.getElementById('slogan_owner_text');
+      if (logo2Input) {
+        logo2Input.addEventListener('input', () => {
+          const v = logo2Input.value.trim();
+          const box = document.getElementById('owner_box');
+          if (!box) return;
+          if (!v) {
+            box.innerHTML = '';
+            box.style.display = 'flex';
+            return;
+          }
+          const cb = (v.indexOf('?') === -1) ? ('?_=' + Date.now()) : ('&_=' + Date.now());
+          updateOwnerBox(v + cb);
+        });
+      }
+      if (sloganOwnerInput) {
+        sloganOwnerInput.addEventListener('input', () => {
+          const box = document.getElementById('owner_box');
+          if (!box) return;
+          const v = (logo2Input && logo2Input.value) ? logo2Input.value.trim() : '';
+          if (v) {
+            const cb = (v.indexOf('?') === -1) ? ('?_=' + Date.now()) : ('&_=' + Date.now());
+            updateOwnerBox(v + cb);
+          } else {
+            box.innerHTML = '';
+            box.style.display = 'flex';
+          }
         });
       }
     });

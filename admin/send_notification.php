@@ -10,9 +10,14 @@ function load_tokens() {
 function send_batch($messages) {
     $ch = curl_init('https://exp.host/--/api/v2/push/send');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    // accept and decode compressed responses
+    curl_setopt($ch, CURLOPT_ENCODING, '');
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json','Accept-encoding: gzip, deflate','Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($messages));
+    // reasonable timeouts
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     $res = curl_exec($ch);
     $info = curl_getinfo($ch);
     $err = curl_error($ch);
@@ -23,9 +28,12 @@ function send_batch($messages) {
 function get_receipts($ids) {
     $ch = curl_init('https://exp.host/--/api/v2/push/getReceipts');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_ENCODING, '');
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json','Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['ids' => $ids]));
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     $res = curl_exec($ch);
     $info = curl_getinfo($ch);
     $err = curl_error($ch);
@@ -263,6 +271,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </a>
     </div>
   </header>
+
+  <?php if (!empty($_SESSION['admin'])) include __DIR__ . '/stream_status.php'; ?>
 
   <main class="max-w-3xl mx-auto px-4 py-6 pb-24">
 

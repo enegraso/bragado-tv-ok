@@ -13,7 +13,9 @@ export async function getExpoPushTokenAsync() {
     finalStatus = status;
   }
   if (finalStatus !== 'granted') return null;
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: 'e72fcaf9-08bb-4061-ad2e-b63685caad89'
+  });
   return tokenData.data;
 }
 

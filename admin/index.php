@@ -127,6 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </a>
   </div>
 
+  <?php if (is_logged()) include __DIR__ . '/stream_status.php'; ?>
+
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <!-- Config Card -->
     <a href="edit_config.php" class="card-hover block glass rounded-2xl p-6 group">

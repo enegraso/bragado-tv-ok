@@ -1,161 +1,124 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform, TVEventHandler, useWindowDimensions } from 'react-native';
-import Video from 'expo-video';
-// fallback to expo-av if expo-video native module isn't available (Expo Go/dev-client differences)
-import { Video as AvVideo } from 'expo-av';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { View, StyleSheet, StatusBar, Pressable, Text, BackHandler, Platform } from 'react-native';
+import { Video } from 'expo-av';
+import * as KeepAwake from 'expo-keep-awake';
+
+let TVEventHandler = null;
+try {
+  TVEventHandler = require('react-native').TVEventHandler;
+} catch (e) {}
 
 export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', buttonBg = 'rgba(255,255,255,0.1)', textColor = '#fff' }) {
-  const videoRef = useRef(null);
-  const [status, setStatus] = useState({});
-  const [error, setError] = useState(null);
   const isTV = Platform.isTV;
-  const [overlayVisible, setOverlayVisible] = useState(isTV ? false : true);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState(null);
+  const [overlayVisible, setOverlayVisible] = useState(false);
   const hideTimerRef = useRef(null);
   const tvHandlerRef = useRef(null);
-  const { width: winW, height: winH } = useWindowDimensions();
-  const isLandscape = winW > winH;
-  const [videoNatural, setVideoNatural] = useState(null);
 
   useEffect(() => {
-    setError(null);
-    const play = async () => {
-      try {
-        if (videoRef.current) {
-          await videoRef.current.loadAsync({ uri: streamUrl }, { shouldPlay: true, isLooping: false });
-          // start playback
-          try { await videoRef.current.playAsync(); } catch (e) {}
-          // do NOT call presentFullscreenPlayer here - it can cause issues in Expo Go/dev clients and some TVs
-        }
-      } catch (e) {
-        console.log('Error loading stream in expo-av Video:', e);
-        setError(e?.message || String(e));
-      }
-    };
-    play();
+    KeepAwake.activateKeepAwakeAsync().catch(() => {});
     return () => {
-      try { videoRef.current && videoRef.current.unloadAsync(); } catch (e) {}
+      KeepAwake.deactivateKeepAwake().catch(() => {});
     };
-  }, [streamUrl]);
-
-  // Helper to show overlay and hide after timeout
-  const showOverlay = (autoHide = true) => {
-    setOverlayVisible(true);
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-    if (autoHide) {
-      hideTimerRef.current = setTimeout(() => setOverlayVisible(false), 4000);
-    }
-  };
-
-  const hideOverlay = () => {
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-    setOverlayVisible(false);
-  };
+  }, []);
 
   useEffect(() => {
-    // Handle hardware back: call onBack if provided and prevent default only when we handled it.
     const onHardwareBack = () => {
       if (onBack) {
         try { onBack(); } catch (e) {}
-        return true; // we handled it
+        return true;
       }
-      return false; // let system handle default (allows exiting player on TV if no onBack)
+      return false;
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
-    return () => {
-      try { sub && sub.remove && sub.remove(); } catch (e) {}
-    };
+    return () => sub?.remove();
   }, [onBack]);
 
-  // TV select handler: toggle overlay on OK (select) button
   useEffect(() => {
-    if (!isTV) return;
-    const tvEventHandler = new TVEventHandler();
-    tvHandlerRef.current = tvEventHandler;
-    tvEventHandler.enable(null, (cmp, evt) => {
+    if (!isTV || !TVEventHandler) return;
+    const handler = new TVEventHandler();
+    tvHandlerRef.current = handler;
+    handler.enable(null, (cmp, evt) => {
       try {
-        if (evt && evt.eventType === 'select') {
-          // toggle overlay visibility and reset timer
+        if (evt?.eventType === 'select') {
           if (overlayVisible) {
             setOverlayVisible(false);
-            if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+            if (hideTimerRef.current) {
+              clearTimeout(hideTimerRef.current);
+              hideTimerRef.current = null;
+            }
           } else {
-            showOverlay(true);
+            setOverlayVisible(true);
+            hideTimerRef.current = setTimeout(() => setOverlayVisible(false), 4000);
           }
         }
       } catch (e) {}
     });
     return () => {
-      try { tvEventHandler.disable(); } catch (e) {}
+      handler.disable();
       tvHandlerRef.current = null;
     };
   }, [overlayVisible, isTV]);
 
-  // attempt to enter PiP when app goes to background on Android (best-effort)
   useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => false);
-    return () => { try { sub && sub.remove && sub.remove(); } catch(e) {} };
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
   }, []);
 
-  // AppState -> try PiP on background for Android mobile (best-effort, may not be supported)
   useEffect(() => {
-    const handleAppState = async (nextState) => {
-      if (Platform.OS === 'android' && nextState === 'background' && !isTV) {
-        try {
-          // try multiple method names depending on native implementation
-          if (videoRef.current && videoRef.current.startPictureInPicture) {
-            await videoRef.current.startPictureInPicture();
-          } else if (videoRef.current && videoRef.current.presentPictureInPicture) {
-            await videoRef.current.presentPictureInPicture();
-          }
-        } catch (e) { /* ignore */ }
-      }
-    };
-    // register AppState listener if needed
-    // (we don't import AppState here to avoid changes if not previously used)
-  }, [isTV]);
+    setReady(false);
+    setError(null);
+  }, [streamUrl]);
 
-  // Determine video style: use the actual window size to avoid scaling artifacts
-  // and let resizeMode handle fitting the content. This prevents weird 200% zoom.
-  const videoStyleComputed = { width: winW, height: winH, backgroundColor: '#000' };
-
-  // Render: use native controls only; fullscreen by style and attempted native fullscreen call
-  const VideoComponent = Video || AvVideo;
+  const handleRetry = useCallback(async () => {
+    try {
+      setError(null);
+      setReady(false);
+      const vid = require('expo-av').Video;
+    } catch (e) {}
+  }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }] }>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
       <StatusBar hidden />
 
-      {/** Use expo-video if available, otherwise fallback to expo-av's Video component */}
-      <VideoComponent
-        ref={videoRef}
-        style={videoStyleComputed}
+      <Video
+        style={styles.video}
         source={{ uri: streamUrl }}
-        useNativeControls={true}
-        resizeMode={(!isLandscape && videoNatural && (videoNatural.width > videoNatural.height)) ? 'contain' : (isLandscape ? 'cover' : 'contain')}
+        useNativeControls={false}
+        resizeMode="contain"
         shouldPlay
+        onPlaybackStatusUpdate={(s) => {
+          if (s?.isLoaded) setReady(true);
+          if (s?.error) setError(String(s.error));
+        }}
         onError={(e) => {
           console.log('Video onError', e);
           setError(e?.nativeEvent?.error || JSON.stringify(e));
         }}
-        onPlaybackStatusUpdate={(s) => { setStatus(s); if (s && s.naturalSize && (!videoNatural || videoNatural.width !== s.naturalSize.width || videoNatural.height !== s.naturalSize.height)) { setVideoNatural(s.naturalSize); } }}
       />
 
       {error ? (
         <View style={styles.overlay} pointerEvents="box-none">
           <Text style={[styles.errorText, { color: textColor }]}>No se pudo reproducir el stream.</Text>
-          <Text style={[styles.errorTextSmall, { color: textColor }]}>{String(error)}</Text>
-          <Pressable style={[styles.retryButton, { backgroundColor: buttonBg }]} onPress={() => {
-            setError(null);
-            try { videoRef.current && videoRef.current.replayAsync(); } catch (e) { /* ignore */ }
-          }}>
+          <Text style={[styles.errorTextSmall, { color: textColor }]}>{error}</Text>
+          <Pressable
+            style={[styles.retryButton, { backgroundColor: buttonBg }]}
+            onPress={() => {
+              setError(null);
+              setReady(false);
+            }}
+          >
             <Text style={[styles.retryText, { color: textColor }]}>REINTENTAR</Text>
           </Pressable>
+        </View>
+      ) : !ready ? (
+        <View style={styles.loadingOverlay} pointerEvents="none">
+          <View style={[styles.loadingBox, { backgroundColor: buttonBg }]}>
+            <Text style={[styles.loadingText, { color: textColor }]}>Cargando stream...</Text>
+          </View>
         </View>
       ) : null}
     </View>
@@ -163,30 +126,55 @@ export default function PlayerScreen({ streamUrl, onBack, bgColor = '#000', butt
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  video: { width: '100%', height: '100%', backgroundColor: '#000' },
-  videoLandscape: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#000' },
-  videoPortraitContain: { alignSelf: 'center', backgroundColor: '#000' },
-  controlsOverlay: { position: 'absolute', bottom: 28, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  controlButton: { paddingVertical: 10, paddingHorizontal: 22, borderRadius: 8, marginHorizontal: 8, minWidth: 140, alignItems: 'center' },
-  controlText: { color: '#fff', fontWeight: '700', textAlign: 'center' },
-  back: {
-    position: 'absolute',
-    top: 40,
-    left: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 8,
-    borderRadius: 6,
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
   },
-  backText: { color: '#fff', fontWeight: '600' },
-  overlay: { position: 'absolute', left: 0, right: 0, bottom: 60, alignItems: 'center' },
-  errorText: { color: '#fff', marginBottom: 6 },
-  errorTextSmall: { color: '#ddd', fontSize: 12, marginBottom: 12, paddingHorizontal: 20, textAlign: 'center' },
+  video: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 60,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#fff',
+    marginBottom: 6,
+  },
+  errorTextSmall: {
+    color: '#ddd',
+    fontSize: 12,
+    marginBottom: 12,
+    paddingHorizontal: 20,
+    textAlign: 'center',
+  },
   retryButton: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 8,
   },
-  retryText: { color: '#fff', fontWeight: '600' }
+  retryText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingBox: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

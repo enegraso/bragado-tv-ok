@@ -31,6 +31,8 @@ async function markCheckedToday() {
 const DEFAULT_STREAM_URL = 'https://srv1053170.hstgr.cloud/hls/bragadotv.m3u8';
 
 import { getConfig } from './services/remoteConfig';
+import { checkForApkUpdate } from './services/checkUpdate';
+import UpdateModal from './components/UpdateModal';
 
 
 
@@ -116,7 +118,18 @@ export default function App() {
   const [slogan, setSlogan] = useState('Canal de streaming en vivo desde Bragado...');
   const [buttonFocusBorder, setButtonFocusBorder] = useState('#ffffff');
   const [buttonFocusWidth, setButtonFocusWidth] = useState(3);
+  const [whatsapp, setWhatsapp] = useState('');
+  const [facebook, setFacebook] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [twitter, setTwitter] = useState('');
+  const [tiktok, setTiktok] = useState('');
+  const [youtube, setYoutube] = useState('');
+  const [mail, setMail] = useState('');
+  const [webUrl, setWebUrl] = useState('');
+  const [ownerLogo, setOwnerLogo] = useState(null);
+  const [ownerSlogan, setOwnerSlogan] = useState(null);
   const [showHome, setShowHome] = useState(true);
+  const [apkUpdate, setApkUpdate] = useState(null);
 
   // Note: the original implementation used expo-video's native player.
   // For Expo Go compatibility we render a separate expo-av based PlayerScreen.
@@ -125,7 +138,7 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-  async function init() {
+    async function init() {
       try {
         const cfg = await getConfig();
         if (!isMounted) return;
@@ -137,8 +150,26 @@ export default function App() {
         if (cfg?.slogan) setSlogan(cfg.slogan);
         if (cfg?.boton_border) setButtonFocusBorder(cfg.boton_border);
         if (cfg?.boton_border_width) setButtonFocusWidth(parseInt(cfg.boton_border_width,10) || 3);
+        if (cfg?.whatsapp) setWhatsapp(cfg.whatsapp);
+        if (cfg?.facebook) setFacebook(cfg.facebook);
+        if (cfg?.instagram) setInstagram(cfg.instagram);
+        if (cfg?.twitter) setTwitter(cfg.twitter);
+        if (cfg?.tiktok) setTiktok(cfg.tiktok);
+        if (cfg?.youtube) setYoutube(cfg.youtube);
+        if (cfg?.mail) setMail(cfg.mail);
+        if (cfg?.web) setWebUrl(cfg.web);
+        if (cfg?.logo2) setOwnerLogo(cfg.logo2);
+        if (cfg?.slogan_owner) setOwnerSlogan(cfg.slogan_owner);
       } catch (e) {
         console.log('Config remota no disponible, usando default');
+      }
+
+      // APK update check (server-hosted APK)
+      try {
+        const updateInfo = await checkForApkUpdate();
+        if (updateInfo) setApkUpdate(updateInfo);
+      } catch (e) {
+        console.log('checkForApkUpdate failed', e);
       }
 
       try {
@@ -238,12 +269,29 @@ export default function App() {
           buttonBg={buttonBg}
           textColor={textColor}
           slogan={slogan}
+          whatsapp={whatsapp}
+          facebook={facebook}
+          instagram={instagram}
+          twitter={twitter}
+          tiktok={tiktok}
+          youtube={youtube}
+          mail={mail}
+          webUrl={webUrl}
+          ownerLogo={ownerLogo}
+          ownerSlogan={ownerSlogan}
           buttonFocusBorder={buttonFocusBorder}
           buttonFocusWidth={buttonFocusWidth}
         />
       ) : (
         <PlayerScreen streamUrl={streamUrl} onBack={() => setShowHome(true)} bgColor={bgColor} buttonBg={buttonBg} textColor={textColor} slogan={slogan} buttonFocusBorder={buttonFocusBorder} buttonFocusWidth={buttonFocusWidth} />
       )}
+      <UpdateModal
+        visible={!!apkUpdate}
+        version={apkUpdate?.version}
+        apkUrl={apkUpdate?.apkUrl}
+        changelog={apkUpdate?.changelog}
+        onClose={() => setApkUpdate(null)}
+      />
     </SafeAreaProvider>
   );
 }

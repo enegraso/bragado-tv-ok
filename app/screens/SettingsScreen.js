@@ -89,6 +89,7 @@ export default function SettingsScreen({ onClose }) {
         <Text style={{fontSize:12,color:'#666'}}>Expo Push Token (visible si disponible):</Text>
         <Text style={{fontSize:12,marginTop:6}} selectable>{token || '(no disponible en Expo Go / emulador)'}</Text>
         <Text style={{fontSize:12,color:'#666',marginTop:8}}>Estado: {registered ? 'Registrado' : 'No registrado'}</Text>
+        <Text style={{fontSize:12,color:'#666',marginTop:8}}>Versión: {Application.nativeApplicationVersion || 'desconocida'}</Text>
       </View>
       {permissionStatus !== 'granted' ? (
         <View style={{marginTop:12}}>
