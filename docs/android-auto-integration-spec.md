@@ -28,6 +28,8 @@ The JS app itself is unchanged — the service is autonomous.
 
 ## 2. Files to add
 
+> ⚠️ **Naming:** the code below uses Bragado TV's real identifiers as a *verified working example*. **Do not ship another app with `BragadoTv*` names.** You must rename the class, file, callback, manifest service name, plugin copy paths, and package — see the **Rename checklist (§3.1)**.
+
 ### 2.1 `plugins/with-android-auto.js` (config plugin)
 
 Injects dependencies, manifest entries, and copies the native files.
@@ -375,12 +377,26 @@ Add to the `plugins` array:
 
 ## 3. Per-app customization checklist
 
-When porting, change these:
+### 3.1 Rename the Bragado TV identifiers (do this first)
+
+§2 shows the real, tested Bragado TV code. **Every Bragado-specific identifier must be renamed per app** — otherwise you ship a competitor app with `BragadoTv*` names:
+
+| Identifier | File | Current value |
+|---|---|---|
+| Kotlin `package` | `BragadoTvMediaService.kt` | `com.bragado.tvok` |
+| **Class name** | `BragadoTvMediaService.kt` | `class BragadoTvMediaService` |
+| **File name** (must match class) | — | `BragadoTvMediaService.kt` |
+| Callback class (cosmetic) | `BragadoTvMediaService.kt` | `class BragadoTvCallback` |
+| Manifest service name | `with-android-auto.js` → `SERVICE_NAME` | `'.BragadoTvMediaService'` |
+| Plugin copy **source** | `with-android-auto.js` → `copyFileSync` | `'BragadoTvMediaService.kt'` |
+| Plugin copy **dest path** | `with-android-auto.js` → `javaDir` | `java/com/bragado/tvok` |
+
+> Keep the file name = the class name, and keep the manifest service name (`.XxxService`) pointing at that class. Rename the callback class too (cosmetic, but avoids confusion).
+
+### 3.2 Content / config
 
 | What | Where | Example |
 |---|---|---|
-| **Java package** | Kotlin `package` line + config plugin `javaDir` path | `com/myapp` |
-| **Service name** | Config plugin `SERVICE_NAME` | `'.MyAppMediaService'` |
 | **Remote config URL** | Kotlin `CONFIG_URL` | your config.txt endpoint |
 | **Fallback stream URL** | Kotlin `FALLBACK_STREAM_URL` | your HLS URL |
 | **Fallback logo URL** | Kotlin `FALLBACK_LOGO_URL` | your logo |
